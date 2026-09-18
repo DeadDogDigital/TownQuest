@@ -161,24 +161,61 @@ function updateOwnLocation(position, {notify=false, recenter=false}={}){
   if(notify) toast('📍 Your location has been updated.');
 }
 
-function requestLocation({recenter=true}={}){
-  if(!navigator.geolocation){toast('Location services are not available on this device.');return}
+function locationStatus(message){
+  const el=document.getElementById('locationStatus');
+  if(el) el.textContent=message;
+}
+
+async function requestLocation({recenter=true}={}){
+  if(!window.isSecureContext){
+    locationStatus('Location requires a secure connection (HTTPS).');
+    toast('Location is only available over HTTPS.');
+    return;
+  }
+  if(!navigator.geolocation){
+    locationStatus('This browser does not provide location services.');
+    toast('Location services are not available in this browser.');
+    return;
+  }
+  locationStatus('📍 Finding your location…');
+  try{
+    if(navigator.permissions?.query){
+      const permission=await navigator.permissions.query({name:'geolocation'});
+      if(permission.state==='denied'){
+        locationStatus('Location access is blocked. Allow Location for this site in your browser settings, then try again.');
+        toast('Location access is blocked for this site.');
+        return;
+      }
+    }
+  }catch(e){ /* Permissions API is optional. */ }
   navigator.geolocation.getCurrentPosition(
-    p=>updateOwnLocation(p,{notify:true,recenter}),
-    err=>{
-      if(err.code===1) toast('Please allow location access to use the live map.');
-      else toast('We could not get your location. Try again outdoors or check Location Services.');
+    p=>{
+      updateOwnLocation(p,{notify:true,recenter});
+      locationStatus('📍 Location found');
+      startLocationWatch();
     },
-    {enableHighAccuracy:true,maximumAge:15000,timeout:15000}
+    err=>{
+      let message='We could not get your location.';
+      if(err.code===1) message='Location permission was denied. Allow location access for this site and try again.';
+      else if(err.code===2) message='Your location could not be determined. Try again outdoors with Location Services enabled.';
+      else if(err.code===3) message='Location took too long. Check Location Services and try again.';
+      locationStatus(message);
+      toast(message);
+      console.warn('Geolocation error',err.code,err.message);
+    },
+    {enableHighAccuracy:true,maximumAge:0,timeout:20000}
   );
 }
 
 function startLocationWatch(){
   if(!navigator.geolocation || locationWatchId!==null) return;
   locationWatchId=navigator.geolocation.watchPosition(
-    p=>updateOwnLocation(p),
-    ()=>{},
-    {enableHighAccuracy:true,maximumAge:10000,timeout:20000}
+    p=>{ updateOwnLocation(p); locationStatus('📍 Live location active'); },
+    err=>{
+      console.warn('Geolocation watch error',err.code,err.message);
+      if(err.code===1) locationStatus('Location access was denied.');
+    },
+    {enableHighAccuracy:true,maximumAge:5000,timeout:30000}
   );
 }
 
@@ -194,7 +231,7 @@ function chapterText(){
 }
 
 function home(){const c=chapterText(); if(!state.started) return `<div class="panel"><section class="hero"><h1>${c.title}</h1><p>${c.intro}</p></section><div class="card"><b>Choose your adventurer name</b><p class="muted">Use a nickname. You can start playing without giving us your email address.</p><input id="nicknameInput" maxlength="24" placeholder="Your nickname" style="width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;font:inherit;margin-top:8px" onkeydown="if(event.key==='Enter')startAdventure()"><button class="action" onclick="startAdventure()">Start the adventure</button></div><div class="notice"><strong>🔒 Privacy</strong><span>Your nickname is your game identity. Email is only needed later if you choose to save your progress permanently or enter the prize draw.</span></div></div>`; return `<div class="panel"><section class="hero"><h1>${c.title}</h1><p>${c.intro}</p><button class="action" onclick="setTab('map')">Explore Hexham</button></section><div class="notice"><strong>🕯️ Story status</strong><span>${c.notice}</span></div><div class="grid"><div class="stat"><b>${state.found.length}/${locations.length}</b><span class="muted">locations discovered</span></div><div class="stat"><b>${state.donations}</b><span class="muted">gifts donated</span></div></div><div class="section">Your mission</div><div class="mission"><b>🔎 Explore the town</b><p>Find locations, collect resources and help build the shared world.</p><button class="action secondary" onclick="setTab('map')">Open the map</button></div><div class="section">Your adventurer</div><div class="card"><b>👤 ${state.player}</b><p class="muted">Your nickname is visible only as your game identity. No email is required to play.</p><button class="action secondary" onclick="showAccountPrompt()">Save progress & enter the prize draw</button></div><div class="section">Stay in the story</div><div class="card"><div class="cardhead"><div><b>🔔 Game notifications</b><div class="muted">Get major story events and live missions. No constant marketing messages.</div></div></div><button class="action" onclick="notificationPermission()">Enable notifications</button></div><div class="card"><b>🟢 ${state.connected?'Connected to the live game world':'Connecting to game world…'}</b><div class="muted">Player: ${state.playerId?'connected':'setting up'}</div></div></div>`}
-function mapTab(){return `<div class="panel"><div class="card"><div class="cardhead"><div><b>🗺️ Hexham is the game board</b><div class="muted">Your position and the shared game world will appear here.</div></div><button class="action" style="width:auto;margin:0" onclick="requestLocation()">📍 Me</button></div></div><div id="map" class="mapwrap"></div><div class="section">Nearby missions</div>${locations.slice(0,4).map(l=>locCard(l)).join('')}</div>`}
+function mapTab(){return `<div class="panel"><div class="card"><div class="cardhead"><div><b>🗺️ Hexham is the game board</b><div id="locationStatus" class="muted">📍 Waiting for your location…</div></div><button class="action" style="width:auto;margin:0" onclick="requestLocation({recenter:true})">📍 Find me</button></div><div class="muted" style="margin-top:8px">Allow location access when your browser asks. Your exact location is only shown to you.</div></div><div id="map" class="mapwrap"></div><div class="section">Nearby missions</div>${locations.slice(0,4).map(l=>locCard(l)).join('')}</div>`}
 function locCard(l){const found=state.found.includes(l.id);return `<div class="card"><div class="cardhead"><div><b>${l.icon} ${l.name}</b><div class="muted">${l.type} • +${l.spirit} Spirit</div></div><span class="pill">${found?'FOUND':'DISCOVER'}</span></div><p>${l.desc}</p><button class="action ${found?'secondary':''}" onclick="discover(locations.find(x=>x.id==='${l.id}'))">${found?'Already discovered':'Discover location'}</button></div>`}
 function bag(){return `<div class="panel"><section class="hero"><h1>🎒 My Bag</h1><p>Resources can be collected, used and shared. Nearby player exchange will be enabled as multiplayer expands.</p></section><div class="section">Supplies</div><div class="inventory"><div class="item"><div class="emoji">🎁</div><b>${state.bag.gifts}</b><span class="muted">Gifts</span></div><div class="item"><div class="emoji">🕯️</div><b>${state.bag.candles}</b><span class="muted">Candles</span></div><div class="item"><div class="emoji">🔔</div><b>${state.bag.bells}</b><span class="muted">Bells</span></div><div class="item"><div class="emoji">⭐</div><b>${state.bag.stars}</b><span class="muted">Spirit light</span></div><div class="item"><div class="emoji">🍪</div><b>${state.bag.treats}</b><span class="muted">Treats</span></div></div><div class="section">Help the town</div><div class="card"><b>🎁 Donate</b><p class="muted">Every donation increases the shared town Spirit.</p><button class="action" onclick="donate()">Donate one gift</button></div><div class="card"><b>🤝 Share</b><p class="muted">The full live multiplayer exchange will use nearby players.</p><button class="action" onclick="shareGift()">Share one gift</button></div></div>`}
 function events(){return `<div class="panel"><section class="hero"><h1>📣 What’s happening?</h1><p>The game world can change automatically as the story progresses. Only the current chapter is shown to players.</p></section><div class="section">Current chapter</div><div class="card"><b>${chapterText().title}</b><p class="muted">${chapterText().notice}</p></div><div class="card"><b>🌐 Shared world</b><p>The town Spirit and live events are stored in the shared game backend. When another player changes the world, connected players can receive the update.</p></div></div>`}
@@ -205,15 +242,25 @@ function render(){
   if(state.tab==='map') initMap();
 }
 function initMap(){
-  if(mapInstance){mapInstance.remove();mapInstance=null;}
-  window.__hcaMeMarker=null;
-  const map=L.map('map').setView(state.position||HEXHAM,15);
+  if(mapInstance){
+    setTimeout(()=>{ if(mapInstance) mapInstance.invalidateSize(); },50);
+    return;
+  }
+  const map=L.map('map').setView(state.position||HEXHAM,state.position?16:15);
   mapInstance=map;
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
-  locations.forEach(l=>{const marker=L.marker([l.lat,l.lng]).addTo(map);marker.bindPopup(`<b>${l.icon} ${l.name}</b><br>${l.type}<br><button onclick="discover(locations.find(x=>x.id==='${l.id}'));document.querySelector('.leaflet-popup-close-button')?.click()">${state.found.includes(l.id)?'Found':'Discover'}</button>`)});
-  if(state.position) window.__hcaMeMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(map).bindPopup('📍 You are here');
-  startLocationWatch();
-  if(!state.position) setTimeout(()=>requestLocation({recenter:true}),150);
+  locations.forEach(l=>{
+    const marker=L.marker([l.lat,l.lng]).addTo(map);
+    marker.bindPopup(`<b>${l.icon} ${l.name}</b><br>${l.type}<br><button onclick="discover(locations.find(x=>x.id==='${l.id}'));document.querySelector('.leaflet-popup-close-button')?.click()">${state.found.includes(l.id)?'Found':'Discover'}</button>`);
+  });
+  if(state.position){
+    window.__hcaMeMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(map).bindPopup('📍 You are here');
+    locationStatus('📍 Location found');
+    startLocationWatch();
+  }else{
+    locationStatus('📍 Finding your location…');
+    setTimeout(()=>requestLocation({recenter:true}),250);
+  }
 }
 
 window.locations=locations;window.setTab=setTab;window.discover=discover;window.donate=donate;window.shareGift=shareGift;window.requestLocation=requestLocation;window.notificationPermission=notificationPermission;window.startAdventure=startAdventure;window.showAccountPrompt=showAccountPrompt;
