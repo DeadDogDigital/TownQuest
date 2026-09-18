@@ -17,6 +17,8 @@ const sampleLocations = [
 ];
 
 let locations = sampleLocations;
+let mapInstance = null;
+let locationWatchId = null;
 let state = JSON.parse(localStorage.getItem('hca-v2') || 'null') || {
   tab:'home', spirit:37, bag:{gifts:2,candles:1,bells:0,stars:0,treats:0}, found:[], donations:0,
   player:'', notificationOptIn:false, playerId:null, position:null,
@@ -88,13 +90,9 @@ function showAccountPrompt(){
 }
 
 async function updatePresence(){
-  if(!supabase || !state.playerId) return;
-  const {data:{session}}=await supabase.auth.getSession();
-  if(!session) return;
-  const payload={id:state.playerId,nickname:state.player,last_seen_at:new Date().toISOString(),is_online:true};
-  if(state.position){payload.latitude=state.position[0];payload.longitude=state.position[1];}
-  const {error}=await supabase.from('players').upsert(payload);
-  if(error) console.debug('Presence update:',error.message);
+  // Until the player chooses to create an account, their identity is local-only.
+  // We deliberately do not write anonymous player records to Supabase.
+  return;
 }
 
 function subscribeRealtime(){
@@ -152,11 +150,36 @@ async function shareGift(){
   await addSpirit(2);toast('🎁 Gift shared with another adventurer nearby.');render();
 }
 
-function requestLocation(){
+function updateOwnLocation(position, {notify=false, recenter=false}={}){
+  state.position=[position.coords.latitude,position.coords.longitude];
+  save();
+  if(mapInstance){
+    if(window.__hcaMeMarker) window.__hcaMeMarker.setLatLng(state.position);
+    else window.__hcaMeMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(mapInstance).bindPopup('📍 You are here');
+    if(recenter) mapInstance.setView(state.position,16);
+  }
+  if(notify) toast('📍 Your location has been updated.');
+}
+
+function requestLocation({recenter=true}={}){
   if(!navigator.geolocation){toast('Location services are not available on this device.');return}
-  navigator.geolocation.getCurrentPosition(async p=>{
-    state.position=[p.coords.latitude,p.coords.longitude];save();await updatePresence();toast('📍 Your location has been updated.');render();
-  },()=>toast('Please allow location access to use the live map.'),{enableHighAccuracy:false,maximumAge:30000,timeout:10000});
+  navigator.geolocation.getCurrentPosition(
+    p=>updateOwnLocation(p,{notify:true,recenter}),
+    err=>{
+      if(err.code===1) toast('Please allow location access to use the live map.');
+      else toast('We could not get your location. Try again outdoors or check Location Services.');
+    },
+    {enableHighAccuracy:true,maximumAge:15000,timeout:15000}
+  );
+}
+
+function startLocationWatch(){
+  if(!navigator.geolocation || locationWatchId!==null) return;
+  locationWatchId=navigator.geolocation.watchPosition(
+    p=>updateOwnLocation(p),
+    ()=>{},
+    {enableHighAccuracy:true,maximumAge:10000,timeout:20000}
+  );
 }
 
 function notificationPermission(){
@@ -182,10 +205,15 @@ function render(){
   if(state.tab==='map') initMap();
 }
 function initMap(){
+  if(mapInstance){mapInstance.remove();mapInstance=null;}
+  window.__hcaMeMarker=null;
   const map=L.map('map').setView(state.position||HEXHAM,15);
+  mapInstance=map;
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
   locations.forEach(l=>{const marker=L.marker([l.lat,l.lng]).addTo(map);marker.bindPopup(`<b>${l.icon} ${l.name}</b><br>${l.type}<br><button onclick="discover(locations.find(x=>x.id==='${l.id}'));document.querySelector('.leaflet-popup-close-button')?.click()">${state.found.includes(l.id)?'Found':'Discover'}</button>`)});
-  if(state.position)L.circleMarker(state.position,{radius:8}).addTo(map).bindPopup('You are here');
+  if(state.position) window.__hcaMeMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(map).bindPopup('📍 You are here');
+  startLocationWatch();
+  if(!state.position) setTimeout(()=>requestLocation({recenter:true}),150);
 }
 
 window.locations=locations;window.setTab=setTab;window.discover=discover;window.donate=donate;window.shareGift=shareGift;window.requestLocation=requestLocation;window.notificationPermission=notificationPermission;window.startAdventure=startAdventure;window.showAccountPrompt=showAccountPrompt;
