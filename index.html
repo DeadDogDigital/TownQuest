@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123b2a">
+<title>Hexham Christmas Adventure</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--green:#123b2a;--gold:#d6a83d;--cream:#fffaf0;--red:#8d2f2f;--ink:#17231d;--muted:#6c756f;--card:#fff;--line:#e8e0cf}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button{font:inherit}.top{background:var(--green);color:#fff;padding:18px 18px 16px;position:sticky;top:0;z-index:20;box-shadow:0 2px 12px #0002}.brand{font-family:Georgia,serif;font-size:24px}.sub{opacity:.78;font-size:12px;margin-top:3px}.spirit{margin-top:14px}.spiritrow{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}.bar{height:9px;background:#ffffff2b;border-radius:99px;overflow:hidden}.fill{height:100%;background:var(--gold);width:37%;transition:.4s}.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:93px;z-index:19}.tab{flex:1;border:0;background:transparent;padding:12px 5px;font-weight:700;color:var(--muted)}.tab.active{color:var(--green);box-shadow:inset 0 -3px var(--gold)}main{max-width:720px;margin:auto}.panel{padding:16px}.hero{background:linear-gradient(145deg,#173f2e,#24553c);color:#fff;border-radius:20px;padding:22px;box-shadow:0 10px 30px #123b2a22}.hero h1{font-family:Georgia,serif;font-size:31px;margin:0 0 8px}.hero p{line-height:1.5;margin:0}.notice{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px}.notice strong{display:block;margin-bottom:5px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}.stat b{font-size:22px;display:block}.muted{color:var(--muted);font-size:12px}.section{font-family:Georgia,serif;font-size:21px;margin:22px 0 10px}.card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px;margin:10px 0}.cardhead{display:flex;justify-content:space-between;gap:10px}.pill{font-size:11px;background:#f2ead6;padding:5px 8px;border-radius:99px;white-space:nowrap}.action{width:100%;border:0;border-radius:12px;background:var(--green);color:#fff;padding:12px;margin-top:12px;font-weight:800}.secondary{background:#f2ead6;color:var(--ink)}.mapwrap{height:54vh;min-height:420px;border-radius:18px;overflow:hidden;border:1px solid var(--line);margin-top:12px}.inventory{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}.item .emoji{font-size:25px}.item b{display:block;margin-top:4px}.mission{border-left:4px solid var(--gold);background:#fff;padding:14px;border-radius:0 14px 14px 0;margin-top:10px}.bottomspace{height:40px}.toast{position:fixed;left:16px;right:16px;bottom:18px;background:#17231d;color:#fff;border-radius:15px;padding:13px 15px;z-index:50;box-shadow:0 8px 25px #0004;display:none}.online{color:#26734b;font-weight:700}.danger{color:#8d2f2f;font-weight:700}@media(min-width:700px){.top{position:relative}.tabs{top:0}.panel{padding:22px 8px}.mapwrap{height:560px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="brand">🎄 Hexham Christmas Adventure</div><div class="sub">The Spirits of Christmas • prototype</div><div class="spirit"><div class="spiritrow"><span>✨ Hexham Christmas Spirit</span><b id="spiritPct">37%</b></div><div class="bar"><div class="fill" id="spiritFill"></div></div></div></header>
+<nav class="tabs"><button class="tab active" data-tab="home">Home</button><button class="tab" data-tab="map">Map</button><button class="tab" data-tab="bag">My Bag</button><button class="tab" data-tab="events">Events</button></nav>
+<main id="app"></main><div class="toast" id="toast"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body></html>
