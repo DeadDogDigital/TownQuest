@@ -1,23 +1,17 @@
-# Hexham Christmas Adventure v1
+# Hexham Adventure V2
 
-A mobile-first prototype for the Hexham Christmas Window Trail game.
+Mobile-first prototype connected to the Hexham Adventure Supabase project.
 
-## What this version demonstrates
+## Current foundation
+- Supabase anonymous player identity
+- Player presence stored in Supabase
+- Shared town Spirit contribution through a protected RPC
+- Server-controlled chapter lookup
+- Halloween → The Veil → Christmas chapter architecture
+- Leaflet/OpenStreetMap map
+- Local player progress retained while backend features are expanded
 
-* Shared-style town Christmas Spirit meter
-* 8 sample Hexham locations on a live OpenStreetMap map
-* Player inventory and supplies
-* Discovering locations and earning resources
-* Donating and sharing resources
-* Story/event calendar
-* Simulated live event that changes shared Spirit
-* Notification permission entry point
-* Local persistence using localStorage
+## Important
+The Supabase publishable key is safe to expose in a browser application. Never expose a Supabase secret/service-role key in this project.
 
-## What is not yet live multiplayer
-
-The prototype stores its state in the browser. The production version needs a shared backend, player/session IDs, server-side validation, real-time subscriptions, scheduled push notifications, QR/GPS validation, and an admin console.
-
-## Proposed production stack
-
-Netlify frontend + Supabase database/realtime/auth/functions, with Web Push for notifications. The public game can remain a PWA so families do not need an App Store download.
+The next build will replace the sample locations with database-driven game content and add privacy-safe live nearby players.
