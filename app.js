@@ -1,34 +1,188 @@
-const HEXHAM=[54.9694,-2.1033];
-const locations=[
- {id:'gaol',name:'The Old Gaol',lat:54.97005,lng:-2.10395,type:'Santa',icon:'🎅',spirit:7,desc:'A major story location. Santa’s world will unlock here.'},
- {id:'abbey',name:'Hexham Abbey',lat:54.97205,lng:-2.10355,type:'Story',icon:'🕯️',spirit:4,desc:'A place where the old stories seem unusually close.'},
- {id:'market',name:'Market Place',lat:54.96925,lng:-2.10225,type:'Supply',icon:'🎁',spirit:3,desc:'A busy gathering place where gifts can be found.'},
- {id:'beaumont',name:'Beaumont Street',lat:54.96835,lng:-2.1011,type:'Mission',icon:'🔔',spirit:4,desc:'A bell has been heard here.'},
- {id:'sele',name:'The Sele',lat:54.97075,lng:-2.09835,type:'Event',icon:'⭐',spirit:5,desc:'A future live event location.'},
- {id:'fore',name:'Fore Street',lat:54.96855,lng:-2.1037,type:'Window',icon:'🪟',spirit:3,desc:'A mysterious Christmas window.'},
- {id:'priest',name:'Priestpopple',lat:54.96895,lng:-2.1052,type:'Supply',icon:'🕯️',spirit:3,desc:'A candle supply point.'},
- {id:'battle',name:'Battle Hill',lat:54.97095,lng:-2.10165,type:'Window',icon:'🎁',spirit:3,desc:'A window with something hidden inside.'}
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = window.SUPABASE_URL || '';
+const SUPABASE_KEY = window.SUPABASE_PUBLISHABLE_KEY || '';
+const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+const HEXHAM = [54.9694, -2.1033];
+const sampleLocations = [
+  {id:'gaol',name:'The Old Gaol',lat:54.97005,lng:-2.10395,type:'Story',icon:'👻',spirit:7,desc:'A major story location. Something about this place feels different tonight.'},
+  {id:'abbey',name:'Hexham Abbey',lat:54.97205,lng:-2.10355,type:'Story',icon:'🕯️',spirit:4,desc:'An old story seems unusually close here.'},
+  {id:'market',name:'Market Place',lat:54.96925,lng:-2.10225,type:'Supply',icon:'🔮',spirit:3,desc:'Something has been left here for those brave enough to find it.'},
+  {id:'beaumont',name:'Beaumont Street',lat:54.96835,lng:-2.1011,type:'Mission',icon:'🔔',spirit:4,desc:'A bell has been heard here, but nobody can find its source.'},
+  {id:'sele',name:'The Sele',lat:54.97075,lng:-2.09835,type:'Event',icon:'✨',spirit:5,desc:'A strange concentration of spirit energy has been detected here.'},
+  {id:'fore',name:'Fore Street',lat:54.96855,lng:-2.1037,type:'Discovery',icon:'🪟',spirit:3,desc:'There is something hidden nearby.'},
+  {id:'priest',name:'Priestpopple',lat:54.96895,lng:-2.1052,type:'Supply',icon:'🕯️',spirit:3,desc:'A candle has been left burning with nobody around.'},
+  {id:'battle',name:'Battle Hill',lat:54.97095,lng:-2.10165,type:'Discovery',icon:'🗝️',spirit:3,desc:'Something old has been disturbed.'}
 ];
-let state=JSON.parse(localStorage.getItem('hca-v1')||'null')||{tab:'home',spirit:37,bag:{gifts:2,candles:1,bells:0,stars:0,treats:0},found:[],donations:0,eventsSeen:[],player:'The Adventurer',notificationOptIn:false};
-const app=document.getElementById('app');
-function save(){localStorage.setItem('hca-v1',JSON.stringify(state)); updateHeader();}
+
+let locations = sampleLocations;
+let state = JSON.parse(localStorage.getItem('hca-v2') || 'null') || {
+  tab:'home', spirit:37, bag:{gifts:2,candles:1,bells:0,stars:0,treats:0}, found:[], donations:0,
+  player:'The Adventurer', notificationOptIn:false, playerId:null, position:null,
+  chapter:'HALLOWEEN', connected:false, nearbyPlayers:[]
+};
+
+const app = document.getElementById('app');
+function save(){localStorage.setItem('hca-v2',JSON.stringify(state));updateHeader();}
 function updateHeader(){document.getElementById('spiritPct').textContent=state.spirit+'%';document.getElementById('spiritFill').style.width=state.spirit+'%';}
 function toast(t){const x=document.getElementById('toast');x.textContent=t;x.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display='none',3500)}
 function setTab(t){state.tab=t;save();document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));render()}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
-function addSpirit(n){state.spirit=Math.min(100,state.spirit+n);save();}
-function discover(loc){if(state.found.includes(loc.id)){toast('You have already discovered this location.');return} state.found.push(loc.id); addSpirit(loc.spirit); if(loc.type==='Supply'){state.bag.gifts++;state.bag.candles++;toast('Supply found: 🎁 +1 gift and 🕯️ +1 candle')} else if(loc.type==='Santa'){state.bag.stars++;toast('🎅 Santa’s location discovered. ⭐ +1 starlight')} else {state.bag.bells++;toast(loc.icon+' Location discovered. 🔔 +1 bell')} save(); render();}
-function donate(){if(state.bag.gifts<1){toast('You need a gift to donate.');return}state.bag.gifts--;state.donations++;addSpirit(2);toast('🎁 Gift donated. The town’s Christmas Spirit rises!');render()}
-function shareGift(){if(state.bag.gifts<1){toast('You have no gift to share.');return}state.bag.gifts--;state.spirit=Math.min(100,state.spirit+2);save();toast('🎁 Gift shared with another adventurer nearby.');render()}
-function requestLocation(){if(!navigator.geolocation){toast('Location services are not available on this device.');return}navigator.geolocation.getCurrentPosition(p=>{state.position=[p.coords.latitude,p.coords.longitude];save();toast('📍 Your location has been updated.');render()},()=>toast('Please allow location access to use the live map.'));}
-function notificationPermission(){if(!('Notification' in window)){toast('Notifications are not supported by this browser.');return}Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();if(r==='granted')toast('🔔 Notifications enabled. Live events can now reach you when push is connected.');else toast('Notifications were not enabled.');});}
-function home(){return `<div class="panel"><section class="hero"><h1>The Spirits of Christmas</h1><p>Something strange is happening in Hexham. The Christmas Spirit is beginning to stir, and four mysterious spirits are on their way. Explore the town, find supplies, help other adventurers and discover the story.</p><button class="action" onclick="setTab('map')">Explore Hexham</button></section><div class="notice"><strong>🕯️ Story status</strong><span>Christmas has not fully awakened yet. This prototype uses 8 sample locations. The full game will use the Christmas Window Trail locations.</span></div><div class="grid"><div class="stat"><b>${state.found.length}/8</b><span class="muted">locations discovered</span></div><div class="stat"><b>${state.donations}</b><span class="muted">gifts shared</span></div></div><div class="section">Your first mission</div><div class="mission"><b>🎁 Help the town</b><p>Find a supply location, collect a gift, then give it to another adventurer or donate it to the shared Christmas Spirit.</p><button class="action secondary" onclick="setTab('bag')">Open my bag</button></div><div class="section">Stay in the story</div><div class="card"><div class="cardhead"><div><b>🔔 Important game notifications</b><div class="muted">Get major story events and live missions. No constant marketing messages.</div></div></div><button class="action" onclick="notificationPermission()">Enable notifications</button></div></div>`}
-function mapTab(){return `<div class="panel"><div class="card"><div class="cardhead"><div><b>🗺️ Hexham is the game board</b><div class="muted">Green markers are sample locations. Later these become the 40 Christmas windows plus live event locations.</div></div><button class="action" style="width:auto;margin:0" onclick="requestLocation()">📍 Me</button></div></div><div id="map" class="mapwrap"></div><div class="section">Nearby missions</div>${locations.slice(0,4).map(l=>locCard(l)).join('')}</div>`}
+
+function parseJsonValue(v){
+  if(typeof v === 'string'){try{return JSON.parse(v)}catch{return v}}
+  return v;
+}
+
+async function loadWorld({silent=false}={}){
+  if(!supabase){if(!silent)toast('Game backend is not configured yet.');return;}
+  try{
+    let chapter = null;
+    const rpc = await supabase.rpc('get_current_chapter');
+    if(!rpc.error && rpc.data){chapter = typeof rpc.data === 'string' ? rpc.data : rpc.data.code;}
+    if(!chapter){
+      const {data,error}=await supabase.from('game_settings').select('key,value').in('key',['current_chapter','town_spirit']);
+      if(error) throw error;
+      for(const row of data||[]) {
+        if(row.key==='current_chapter') chapter=String(parseJsonValue(row.value));
+        if(row.key==='town_spirit' && Number.isFinite(Number(parseJsonValue(row.value)))) state.spirit=Number(parseJsonValue(row.value));
+      }
+    } else {
+      const {data}=await supabase.from('game_settings').select('key,value').eq('key','town_spirit').maybeSingle();
+      if(data && Number.isFinite(Number(parseJsonValue(data.value)))) state.spirit=Number(parseJsonValue(data.value));
+    }
+    if(chapter) state.chapter=chapter;
+    state.connected=true;save();render();
+  }catch(error){
+    state.connected=false;save();
+    if(!silent)toast('Could not connect to the game world.');
+    console.error(error);
+  }
+}
+
+async function createPlayer(){
+  if(!supabase || state.playerId) return;
+  const {data:sessionData} = await supabase.auth.getSession();
+  if(!sessionData.session){
+    const {error}=await supabase.auth.signInAnonymously();
+    if(error){console.error(error);toast('Anonymous player sign-in failed.');return;}
+  }
+  const {data:userData,error:userError}=await supabase.auth.getUser();
+  if(userError || !userData?.user?.id){console.error(userError);return;}
+  const id=userData.user.id;
+  state.playerId=id;
+  const {error}=await supabase.from('players').upsert({id,nickname:state.player,last_seen_at:new Date().toISOString(),is_online:true});
+  if(error){console.error(error);toast('Could not create your player profile.');return;}
+  save();
+}
+
+async function updatePresence(){
+  if(!supabase || !state.playerId) return;
+  const payload={id:state.playerId,nickname:state.player,last_seen_at:new Date().toISOString(),is_online:true};
+  if(state.position){payload.latitude=state.position[0];payload.longitude=state.position[1];}
+  const {error}=await supabase.from('players').upsert(payload);
+  if(error) console.debug('Presence update:',error.message);
+}
+
+function subscribeRealtime(){
+  if(!supabase) return;
+  supabase.channel('game-world')
+    .on('postgres_changes',{event:'*',schema:'public',table:'game_settings'},payload=>{
+      if(payload.new?.key==='current_chapter'){
+        state.chapter=String(parseJsonValue(payload.new.value));save();render();toast('The game world has changed.');
+      }
+      if(payload.new?.key==='town_spirit'){
+        const v=Number(parseJsonValue(payload.new.value));if(Number.isFinite(v)){state.spirit=v;save();}
+      }
+    })
+    .subscribe();
+  setInterval(()=>loadWorld({silent:true}),60000);
+}
+
+async function contributeSpirit(amount){
+  if(!supabase || !state.playerId) return false;
+  const {data,error}=await supabase.rpc('contribute_spirit',{p_amount:amount});
+  if(error){console.debug('Spirit contribution:',error.message);return false;}
+  if(Number.isFinite(Number(data))) state.spirit=Number(data);
+  save();
+  return true;
+}
+
+async function addSpirit(n){
+  state.spirit=Math.min(100,state.spirit+n);save();
+  await contributeSpirit(n);
+}
+
+async function discover(loc){
+  if(state.found.includes(loc.id)){toast('You have already discovered this location.');return}
+  state.found.push(loc.id);await addSpirit(loc.spirit);
+  if(loc.type==='Supply'){state.bag.gifts++;state.bag.candles++;toast('Supply found: 🎁 +1 gift and 🕯️ +1 candle')}
+  else if(loc.type==='Story'){state.bag.stars++;toast('👻 Story location discovered. ✨ +1 spirit light')}
+  else {state.bag.bells++;toast(loc.icon+' Location discovered. 🔔 +1 bell')}
+  save();
+  if(supabase && state.playerId){
+    await supabase.from('player_activity').insert({player_id:state.playerId,activity_type:'discover',metadata:{prototype_location:loc.id,chapter:state.chapter,location_name:loc.name}});
+  }
+  render();
+}
+
+async function donate(){
+  if(state.bag.gifts<1){toast('You need a gift to donate.');return}
+  state.bag.gifts--;state.donations++;save();
+  await addSpirit(2);toast('🎁 Gift donated. The shared town Spirit rises!');render();
+  if(supabase && state.playerId) await supabase.from('player_activity').insert({player_id:state.playerId,activity_type:'donate',amount:1,metadata:{chapter:state.chapter}});
+}
+
+async function shareGift(){
+  if(state.bag.gifts<1){toast('You have no gift to share.');return}
+  state.bag.gifts--;save();
+  await addSpirit(2);toast('🎁 Gift shared with another adventurer nearby.');render();
+}
+
+function requestLocation(){
+  if(!navigator.geolocation){toast('Location services are not available on this device.');return}
+  navigator.geolocation.getCurrentPosition(async p=>{
+    state.position=[p.coords.latitude,p.coords.longitude];save();await updatePresence();toast('📍 Your location has been updated.');render();
+  },()=>toast('Please allow location access to use the live map.'),{enableHighAccuracy:false,maximumAge:30000,timeout:10000});
+}
+
+function notificationPermission(){
+  if(!('Notification' in window)){toast('Notifications are not supported by this browser.');return}
+  Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();if(r==='granted')toast('🔔 Notifications enabled.');else toast('Notifications were not enabled.');});
+}
+
+function chapterText(){
+  if(state.chapter==='VEIL') return {title:'The Veil',intro:'Something has changed in Hexham. The boundary between the ordinary world and something older is becoming thin.',meter:'Hexham Spirit',notice:'The veil is open. Watch the map and investigate anything unusual.'};
+  if(state.chapter==='CHRISTMAS') return {title:'Christmas Awakens',intro:'The lights are on. A new chapter of the story has begun across Hexham.',meter:'Hexham Christmas Spirit',notice:'The Christmas world is now awake.'};
+  return {title:'The Spirits Awaken',intro:'Something strange is happening in Hexham. Explore the town, investigate unusual places and discover what has awakened.',meter:'Hexham Spirit',notice:'The spirits have awakened. The town needs curious adventurers.'};
+}
+
+function home(){const c=chapterText();return `<div class="panel"><section class="hero"><h1>${c.title}</h1><p>${c.intro}</p><button class="action" onclick="setTab('map')">Explore Hexham</button></section><div class="notice"><strong>🕯️ Story status</strong><span>${c.notice}</span></div><div class="grid"><div class="stat"><b>${state.found.length}/${locations.length}</b><span class="muted">locations discovered</span></div><div class="stat"><b>${state.donations}</b><span class="muted">gifts donated</span></div></div><div class="section">Your mission</div><div class="mission"><b>🔎 Explore the town</b><p>Find locations, collect resources and help build the shared world.</p><button class="action secondary" onclick="setTab('map')">Open the map</button></div><div class="section">Stay in the story</div><div class="card"><div class="cardhead"><div><b>🔔 Game notifications</b><div class="muted">Get major story events and live missions. No constant marketing messages.</div></div></div><button class="action" onclick="notificationPermission()">Enable notifications</button></div><div class="card"><b>🟢 ${state.connected?'Connected to the live game world':'Connecting to game world…'}</b><div class="muted">Player: ${state.playerId?'connected':'setting up'}</div></div></div>`}
+function mapTab(){return `<div class="panel"><div class="card"><div class="cardhead"><div><b>🗺️ Hexham is the game board</b><div class="muted">Your position and the shared game world will appear here.</div></div><button class="action" style="width:auto;margin:0" onclick="requestLocation()">📍 Me</button></div></div><div id="map" class="mapwrap"></div><div class="section">Nearby missions</div>${locations.slice(0,4).map(l=>locCard(l)).join('')}</div>`}
 function locCard(l){const found=state.found.includes(l.id);return `<div class="card"><div class="cardhead"><div><b>${l.icon} ${l.name}</b><div class="muted">${l.type} • +${l.spirit} Spirit</div></div><span class="pill">${found?'FOUND':'DISCOVER'}</span></div><p>${l.desc}</p><button class="action ${found?'secondary':''}" onclick="discover(locations.find(x=>x.id==='${l.id}'))">${found?'Already discovered':'Discover location'}</button></div>`}
-function bag(){return `<div class="panel"><section class="hero"><h1>🎒 My Christmas Bag</h1><p>Resources are yours to collect, use and share. In the full multiplayer game, nearby players will be able to exchange supplies.</p></section><div class="section">Supplies</div><div class="inventory"><div class="item"><div class="emoji">🎁</div><b>${state.bag.gifts}</b><span class="muted">Gifts</span></div><div class="item"><div class="emoji">🕯️</div><b>${state.bag.candles}</b><span class="muted">Candles</span></div><div class="item"><div class="emoji">🔔</div><b>${state.bag.bells}</b><span class="muted">Bells</span></div><div class="item"><div class="emoji">⭐</div><b>${state.bag.stars}</b><span class="muted">Starlight</span></div><div class="item"><div class="emoji">🍪</div><b>${state.bag.treats}</b><span class="muted">Treats</span></div></div><div class="section">Make Christmas happen</div><div class="card"><b>🎁 Donate to Hexham</b><p class="muted">Every donation increases the shared town Christmas Spirit.</p><button class="action" onclick="donate()">Donate one gift</button></div><div class="card"><b>🤝 Share with another player</b><p class="muted">Prototype action. The full version will use nearby players and live multiplayer.</p><button class="action" onclick="shareGift()">Share one gift</button></div></div>`}
-function events(){return `<div class="panel"><section class="hero"><h1>📣 What's happening?</h1><p>The game can change between real-world dates. Major events can appear on the map and trigger notifications for players who have opted in.</p></section><div class="section">Story calendar</div><div class="card"><b>👻 31 October • The Spirits Awaken</b><p class="muted">Halloween chapter. Players investigate strange spirits around Hexham.</p></div><div class="card"><b>🔥 7 November • The Veil</b><p class="muted">A short live event around fireworks night. Something crosses between worlds.</p></div><div class="card"><b>🎄 20 November • Christmas Awakens</b><p class="muted">Santa switches on the lights. The 40-window Christmas world unlocks.</p></div><div class="card"><b>🎅 25 November • Santa's World</b><p class="muted">The Old Gaol becomes a major story destination and can link directly to Santa ticket booking.</p></div><div class="card"><b>🎭 December • Scrooge's Story</b><p class="muted">The Queen's Hall production becomes part of the wider Christmas story and a natural ticket conversion point.</p></div><div class="section">Prototype live event</div><div class="card"><b>🚨 Marley has been spotted</b><p>In the finished game this would be a real server event visible to everybody playing at once.</p><button class="action" onclick="triggerMarley()">Simulate live event</button></div></div>`}
-function triggerMarley(){if(!state.eventsSeen.includes('marley')){state.eventsSeen.push('marley');state.spirit=Math.max(0,state.spirit-5);save();toast('👻 MARLEY HAS BEEN SPOTTED! The shared Spirit drops by 5.');}else toast('Marley has already been triggered in this prototype.');render();}
-function render(){updateHeader();document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));app.innerHTML=state.tab==='home'?home():state.tab==='map'?mapTab():state.tab==='bag'?bag():events();if(state.tab==='map')initMap();}
-function initMap(){const map=L.map('map').setView(state.position||HEXHAM,15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);locations.forEach(l=>{const marker=L.marker([l.lat,l.lng]).addTo(map);marker.bindPopup(`<b>${l.icon} ${l.name}</b><br>${l.type}<br><button onclick="discover(locations.find(x=>x.id==='${l.id}'));document.querySelector('.leaflet-popup-close-button')?.click()">${state.found.includes(l.id)?'Found':'Discover'}</button>`)});if(state.position)L.circleMarker(state.position,{radius:8}).addTo(map).bindPopup('You are here');}
-window.locations=locations;window.setTab=setTab;window.discover=discover;window.donate=donate;window.shareGift=shareGift;window.requestLocation=requestLocation;window.notificationPermission=notificationPermission;window.triggerMarley=triggerMarley;
-render();
+function bag(){return `<div class="panel"><section class="hero"><h1>🎒 My Bag</h1><p>Resources can be collected, used and shared. Nearby player exchange will be enabled as multiplayer expands.</p></section><div class="section">Supplies</div><div class="inventory"><div class="item"><div class="emoji">🎁</div><b>${state.bag.gifts}</b><span class="muted">Gifts</span></div><div class="item"><div class="emoji">🕯️</div><b>${state.bag.candles}</b><span class="muted">Candles</span></div><div class="item"><div class="emoji">🔔</div><b>${state.bag.bells}</b><span class="muted">Bells</span></div><div class="item"><div class="emoji">⭐</div><b>${state.bag.stars}</b><span class="muted">Spirit light</span></div><div class="item"><div class="emoji">🍪</div><b>${state.bag.treats}</b><span class="muted">Treats</span></div></div><div class="section">Help the town</div><div class="card"><b>🎁 Donate</b><p class="muted">Every donation increases the shared town Spirit.</p><button class="action" onclick="donate()">Donate one gift</button></div><div class="card"><b>🤝 Share</b><p class="muted">The full live multiplayer exchange will use nearby players.</p><button class="action" onclick="shareGift()">Share one gift</button></div></div>`}
+function events(){return `<div class="panel"><section class="hero"><h1>📣 What’s happening?</h1><p>The game world can change automatically as the story progresses. Only the current chapter is shown to players.</p></section><div class="section">Current chapter</div><div class="card"><b>${chapterText().title}</b><p class="muted">${chapterText().notice}</p></div><div class="card"><b>🌐 Shared world</b><p>The town Spirit and live events are stored in the shared game backend. When another player changes the world, connected players can receive the update.</p></div></div>`}
+
+function render(){
+  updateHeader();document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
+  app.innerHTML=state.tab==='home'?home():state.tab==='map'?mapTab():state.tab==='bag'?bag():events();
+  if(state.tab==='map') initMap();
+}
+function initMap(){
+  const map=L.map('map').setView(state.position||HEXHAM,15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
+  locations.forEach(l=>{const marker=L.marker([l.lat,l.lng]).addTo(map);marker.bindPopup(`<b>${l.icon} ${l.name}</b><br>${l.type}<br><button onclick="discover(locations.find(x=>x.id==='${l.id}'));document.querySelector('.leaflet-popup-close-button')?.click()">${state.found.includes(l.id)?'Found':'Discover'}</button>`)});
+  if(state.position)L.circleMarker(state.position,{radius:8}).addTo(map).bindPopup('You are here');
+}
+
+window.locations=locations;window.setTab=setTab;window.discover=discover;window.donate=donate;window.shareGift=shareGift;window.requestLocation=requestLocation;window.notificationPermission=notificationPermission;
+
+(async function boot(){
+  render();
+  await loadWorld();
+  await createPlayer();
+  await updatePresence();
+  subscribeRealtime();
+  render();
+})();
