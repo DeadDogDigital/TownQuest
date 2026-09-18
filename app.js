@@ -19,8 +19,8 @@ const sampleLocations = [
 let locations = sampleLocations;
 let state = JSON.parse(localStorage.getItem('hca-v2') || 'null') || {
   tab:'home', spirit:37, bag:{gifts:2,candles:1,bells:0,stars:0,treats:0}, found:[], donations:0,
-  player:'The Adventurer', notificationOptIn:false, playerId:null, position:null,
-  chapter:'HALLOWEEN', connected:false, nearbyPlayers:[]
+  player:'', notificationOptIn:false, playerId:null, position:null,
+  chapter:'HALLOWEEN', connected:false, nearbyPlayers:[], started:false
 };
 
 const app = document.getElementById('app');
@@ -61,24 +61,36 @@ async function loadWorld({silent=false}={}){
   }
 }
 
-async function createPlayer(){
-  if(!supabase || state.playerId) return;
-  const {data:sessionData} = await supabase.auth.getSession();
-  if(!sessionData.session){
-    const {error}=await supabase.auth.signInAnonymously();
-    if(error){console.error(error);toast('Anonymous player sign-in failed.');return;}
+function ensureLocalPlayer(){
+  if(state.playerId) return true;
+  if(!state.player){
+    return false;
   }
-  const {data:userData,error:userError}=await supabase.auth.getUser();
-  if(userError || !userData?.user?.id){console.error(userError);return;}
-  const id=userData.user.id;
-  state.playerId=id;
-  const {error}=await supabase.from('players').upsert({id,nickname:state.player,last_seen_at:new Date().toISOString(),is_online:true});
-  if(error){console.error(error);toast('Could not create your player profile.');return;}
+  state.playerId=crypto.randomUUID();
+  state.started=true;
   save();
+  return true;
+}
+
+function startAdventure(){
+  const input=document.getElementById('nicknameInput');
+  const nickname=(input?.value||'').trim().replace(/\s+/g,' ');
+  if(nickname.length<2){toast('Choose a nickname with at least 2 characters.');return;}
+  if(nickname.length>24){toast('Keep your nickname to 24 characters or fewer.');return;}
+  state.player=nickname;
+  ensureLocalPlayer();
+  toast(`Welcome, ${nickname}! Your adventure begins.`);
+  render();
+}
+
+function showAccountPrompt(){
+  toast('Account and prize draw entry will be added here.');
 }
 
 async function updatePresence(){
   if(!supabase || !state.playerId) return;
+  const {data:{session}}=await supabase.auth.getSession();
+  if(!session) return;
   const payload={id:state.playerId,nickname:state.player,last_seen_at:new Date().toISOString(),is_online:true};
   if(state.position){payload.latitude=state.position[0];payload.longitude=state.position[1];}
   const {error}=await supabase.from('players').upsert(payload);
@@ -158,7 +170,7 @@ function chapterText(){
   return {title:'The Spirits Awaken',intro:'Something strange is happening in Hexham. Explore the town, investigate unusual places and discover what has awakened.',meter:'Hexham Spirit',notice:'The spirits have awakened. The town needs curious adventurers.'};
 }
 
-function home(){const c=chapterText();return `<div class="panel"><section class="hero"><h1>${c.title}</h1><p>${c.intro}</p><button class="action" onclick="setTab('map')">Explore Hexham</button></section><div class="notice"><strong>🕯️ Story status</strong><span>${c.notice}</span></div><div class="grid"><div class="stat"><b>${state.found.length}/${locations.length}</b><span class="muted">locations discovered</span></div><div class="stat"><b>${state.donations}</b><span class="muted">gifts donated</span></div></div><div class="section">Your mission</div><div class="mission"><b>🔎 Explore the town</b><p>Find locations, collect resources and help build the shared world.</p><button class="action secondary" onclick="setTab('map')">Open the map</button></div><div class="section">Stay in the story</div><div class="card"><div class="cardhead"><div><b>🔔 Game notifications</b><div class="muted">Get major story events and live missions. No constant marketing messages.</div></div></div><button class="action" onclick="notificationPermission()">Enable notifications</button></div><div class="card"><b>🟢 ${state.connected?'Connected to the live game world':'Connecting to game world…'}</b><div class="muted">Player: ${state.playerId?'connected':'setting up'}</div></div></div>`}
+function home(){const c=chapterText(); if(!state.started) return `<div class="panel"><section class="hero"><h1>${c.title}</h1><p>${c.intro}</p></section><div class="card"><b>Choose your adventurer name</b><p class="muted">Use a nickname. You can start playing without giving us your email address.</p><input id="nicknameInput" maxlength="24" placeholder="Your nickname" style="width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;font:inherit;margin-top:8px" onkeydown="if(event.key==='Enter')startAdventure()"><button class="action" onclick="startAdventure()">Start the adventure</button></div><div class="notice"><strong>🔒 Privacy</strong><span>Your nickname is your game identity. Email is only needed later if you choose to save your progress permanently or enter the prize draw.</span></div></div>`; return `<div class="panel"><section class="hero"><h1>${c.title}</h1><p>${c.intro}</p><button class="action" onclick="setTab('map')">Explore Hexham</button></section><div class="notice"><strong>🕯️ Story status</strong><span>${c.notice}</span></div><div class="grid"><div class="stat"><b>${state.found.length}/${locations.length}</b><span class="muted">locations discovered</span></div><div class="stat"><b>${state.donations}</b><span class="muted">gifts donated</span></div></div><div class="section">Your mission</div><div class="mission"><b>🔎 Explore the town</b><p>Find locations, collect resources and help build the shared world.</p><button class="action secondary" onclick="setTab('map')">Open the map</button></div><div class="section">Your adventurer</div><div class="card"><b>👤 ${state.player}</b><p class="muted">Your nickname is visible only as your game identity. No email is required to play.</p><button class="action secondary" onclick="showAccountPrompt()">Save progress & enter the prize draw</button></div><div class="section">Stay in the story</div><div class="card"><div class="cardhead"><div><b>🔔 Game notifications</b><div class="muted">Get major story events and live missions. No constant marketing messages.</div></div></div><button class="action" onclick="notificationPermission()">Enable notifications</button></div><div class="card"><b>🟢 ${state.connected?'Connected to the live game world':'Connecting to game world…'}</b><div class="muted">Player: ${state.playerId?'connected':'setting up'}</div></div></div>`}
 function mapTab(){return `<div class="panel"><div class="card"><div class="cardhead"><div><b>🗺️ Hexham is the game board</b><div class="muted">Your position and the shared game world will appear here.</div></div><button class="action" style="width:auto;margin:0" onclick="requestLocation()">📍 Me</button></div></div><div id="map" class="mapwrap"></div><div class="section">Nearby missions</div>${locations.slice(0,4).map(l=>locCard(l)).join('')}</div>`}
 function locCard(l){const found=state.found.includes(l.id);return `<div class="card"><div class="cardhead"><div><b>${l.icon} ${l.name}</b><div class="muted">${l.type} • +${l.spirit} Spirit</div></div><span class="pill">${found?'FOUND':'DISCOVER'}</span></div><p>${l.desc}</p><button class="action ${found?'secondary':''}" onclick="discover(locations.find(x=>x.id==='${l.id}'))">${found?'Already discovered':'Discover location'}</button></div>`}
 function bag(){return `<div class="panel"><section class="hero"><h1>🎒 My Bag</h1><p>Resources can be collected, used and shared. Nearby player exchange will be enabled as multiplayer expands.</p></section><div class="section">Supplies</div><div class="inventory"><div class="item"><div class="emoji">🎁</div><b>${state.bag.gifts}</b><span class="muted">Gifts</span></div><div class="item"><div class="emoji">🕯️</div><b>${state.bag.candles}</b><span class="muted">Candles</span></div><div class="item"><div class="emoji">🔔</div><b>${state.bag.bells}</b><span class="muted">Bells</span></div><div class="item"><div class="emoji">⭐</div><b>${state.bag.stars}</b><span class="muted">Spirit light</span></div><div class="item"><div class="emoji">🍪</div><b>${state.bag.treats}</b><span class="muted">Treats</span></div></div><div class="section">Help the town</div><div class="card"><b>🎁 Donate</b><p class="muted">Every donation increases the shared town Spirit.</p><button class="action" onclick="donate()">Donate one gift</button></div><div class="card"><b>🤝 Share</b><p class="muted">The full live multiplayer exchange will use nearby players.</p><button class="action" onclick="shareGift()">Share one gift</button></div></div>`}
@@ -176,12 +188,12 @@ function initMap(){
   if(state.position)L.circleMarker(state.position,{radius:8}).addTo(map).bindPopup('You are here');
 }
 
-window.locations=locations;window.setTab=setTab;window.discover=discover;window.donate=donate;window.shareGift=shareGift;window.requestLocation=requestLocation;window.notificationPermission=notificationPermission;
+window.locations=locations;window.setTab=setTab;window.discover=discover;window.donate=donate;window.shareGift=shareGift;window.requestLocation=requestLocation;window.notificationPermission=notificationPermission;window.startAdventure=startAdventure;window.showAccountPrompt=showAccountPrompt;
 
 (async function boot(){
   render();
   await loadWorld();
-  await createPlayer();
+  ensureLocalPlayer();
   await updatePresence();
   subscribeRealtime();
   render();
