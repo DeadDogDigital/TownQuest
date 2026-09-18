@@ -15,3 +15,4 @@ Mobile-first prototype connected to the Hexham Adventure Supabase project.
 The Supabase publishable key is safe to expose in a browser application. Never expose a Supabase secret/service-role key in this project.
 
 The next build will replace the sample locations with database-driven game content and add privacy-safe live nearby players.
+ 
