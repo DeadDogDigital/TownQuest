@@ -53,7 +53,7 @@ async function loadWorld({silent=false}={}){
       if(data && Number.isFinite(Number(parseJsonValue(data.value)))) state.spirit=Number(parseJsonValue(data.value));
     }
     if(chapter) state.chapter=chapter;
-    state.connected=true;save();render();
+    state.connected=true;save(); if(state.started) render();
   }catch(error){
     state.connected=false;save();
     if(!silent)toast('Could not connect to the game world.');
@@ -102,10 +102,10 @@ function subscribeRealtime(){
   supabase.channel('game-world')
     .on('postgres_changes',{event:'*',schema:'public',table:'game_settings'},payload=>{
       if(payload.new?.key==='current_chapter'){
-        state.chapter=String(parseJsonValue(payload.new.value));save();render();toast('The game world has changed.');
+        state.chapter=String(parseJsonValue(payload.new.value));save(); if(state.started) { render(); toast('The game world has changed.'); }
       }
       if(payload.new?.key==='town_spirit'){
-        const v=Number(parseJsonValue(payload.new.value));if(Number.isFinite(v)){state.spirit=v;save();}
+        const v=Number(parseJsonValue(payload.new.value));if(Number.isFinite(v)){state.spirit=v;save(); if(state.started && state.tab!=='home') render();}
       }
     })
     .subscribe();
@@ -191,10 +191,14 @@ function initMap(){
 window.locations=locations;window.setTab=setTab;window.discover=discover;window.donate=donate;window.shareGift=shareGift;window.requestLocation=requestLocation;window.notificationPermission=notificationPermission;window.startAdventure=startAdventure;window.showAccountPrompt=showAccountPrompt;
 
 (async function boot(){
+  // Render the nickname screen immediately and never re-render it while the player is typing.
   render();
-  await loadWorld();
-  ensureLocalPlayer();
-  await updatePresence();
-  subscribeRealtime();
-  render();
+  await loadWorld({silent:true});
+  // A player does not exist until they press Start Adventure.
+  if(state.started){
+    ensureLocalPlayer();
+    await updatePresence();
+    subscribeRealtime();
+    render();
+  }
 })();
