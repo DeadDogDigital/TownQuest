@@ -5,275 +5,231 @@ const SUPABASE_KEY = window.SUPABASE_PUBLISHABLE_KEY || '';
 const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const HEXHAM = [54.9694, -2.1033];
-const sampleLocations = [
-  {id:'gaol',name:'The Old Gaol',lat:54.97005,lng:-2.10395,type:'Story',icon:'👻',spirit:7,desc:'A major story location. Something about this place feels different tonight.'},
-  {id:'abbey',name:'Hexham Abbey',lat:54.97205,lng:-2.10355,type:'Story',icon:'🕯️',spirit:4,desc:'An old story seems unusually close here.'},
-  {id:'market',name:'Market Place',lat:54.96925,lng:-2.10225,type:'Supply',icon:'🔮',spirit:3,desc:'Something has been left here for those brave enough to find it.'},
-  {id:'beaumont',name:'Beaumont Street',lat:54.96835,lng:-2.1011,type:'Mission',icon:'🔔',spirit:4,desc:'A bell has been heard here, but nobody can find its source.'},
-  {id:'sele',name:'The Sele',lat:54.97075,lng:-2.09835,type:'Event',icon:'✨',spirit:5,desc:'A strange concentration of spirit energy has been detected here.'},
-  {id:'fore',name:'Fore Street',lat:54.96855,lng:-2.1037,type:'Discovery',icon:'🪟',spirit:3,desc:'There is something hidden nearby.'},
-  {id:'priest',name:'Priestpopple',lat:54.96895,lng:-2.1052,type:'Supply',icon:'🕯️',spirit:3,desc:'A candle has been left burning with nobody around.'},
-  {id:'battle',name:'Battle Hill',lat:54.97095,lng:-2.10165,type:'Discovery',icon:'🗝️',spirit:3,desc:'Something old has been disturbed.'}
+const locations = [
+  {id:'gaol',name:'Hexham Old Gaol',lat:54.97005,lng:-2.10395,icon:'⛓️',kind:'investigate',spirit:7,
+   title:'THE PRISONER',prompt:'Something is wrong at the Old Gaol.',text:'Find out what has escaped.',
+   traces:['A broken chain','Deep scratches in the stone','A patch of impossible cold'],
+   clues:['The metal is cold. Far too cold. Whatever was wearing this did not leave willingly.','Something dragged itself towards the doorway.','The marks stop where there is nowhere left to go.']},
+  {id:'forum',name:'Forum Cinema',lat:54.96972,lng:-2.10182,icon:'🎬',kind:'puzzle',spirit:8,
+   title:'THE MEMORY',prompt:'🎬 THE FILM HAS STARTED',text:'But nobody bought a ticket.',
+   traces:['A figure entering the cinema','The doors closing','An empty seat']},
+  {id:'hall',name:"Queen's Hall",lat:54.97032,lng:-2.10155,icon:'🎭',kind:'multiplayer',spirit:9,
+   title:'THE AUDIENCE',prompt:'The building remembers everyone who has ever gathered here.',text:'Listen.',
+   traces:['Faint applause','A voice behind you','An empty entrance']},
 ];
 
-let locations = sampleLocations;
-let mapInstance = null;
-let locationWatchId = null;
-let state = JSON.parse(localStorage.getItem('hca-v2') || 'null') || {
-  tab:'home', spirit:37, bag:{gifts:2,candles:1,bells:0,stars:0,treats:0}, found:[], donations:0,
-  player:'', notificationOptIn:false, playerId:null, position:null,
-  chapter:'HALLOWEEN', connected:false, nearbyPlayers:[], started:false
+let mapInstance=null, spiritMarker=null, meMarker=null, locationWatchId=null, spiritTimer=null;
+let state=JSON.parse(localStorage.getItem('townquest-v3')||'null')||{
+  tab:'home',player:'',playerId:null,started:false,position:null,chapter:'HALLOWEEN',
+  spirit:37,found:[],progress:{gaol:0,forum:false,hall:false},marley:false,notificationOptIn:false,connected:false
 };
 
-const app = document.getElementById('app');
-function save(){localStorage.setItem('hca-v2',JSON.stringify(state));updateHeader();}
-function updateHeader(){document.getElementById('spiritPct').textContent=state.spirit+'%';document.getElementById('spiritFill').style.width=state.spirit+'%';}
-function toast(t){const x=document.getElementById('toast');x.textContent=t;x.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display='none',3500)}
-function setTab(t){state.tab=t;save();document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));render()}
+const app=document.getElementById('app');
+const save=()=>{localStorage.setItem('townquest-v3',JSON.stringify(state));updateHeader()};
+const toast=t=>{const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.__toast);window.__toast=setTimeout(()=>e.style.display='none',3500)};
+const updateHeader=()=>{const p=document.getElementById('spiritPct'),f=document.getElementById('spiritFill');if(p)p.textContent=state.spirit+'%';if(f)f.style.width=state.spirit+'%'};
+const setTab=t=>{state.tab=t;save();render();};
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 
-function parseJsonValue(v){
-  if(typeof v === 'string'){try{return JSON.parse(v)}catch{return v}}
-  return v;
+function distance(a,b){
+  const R=6371000, p=Math.PI/180, dLat=(b[0]-a[0])*p,dLon=(b[1]-a[1])*p;
+  const x=Math.sin(dLat/2)**2+Math.cos(a[0]*p)*Math.cos(b[0]*p)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
 }
+function nearest(){
+  if(!state.position)return null;
+  return locations.map(l=>({...l,distance:distance(state.position,[l.lat,l.lng])})).sort((a,b)=>a.distance-b.distance)[0];
+}
+function proximityText(m){
+  if(!m)return '📍 Location is waiting for your GPS position.';
+  if(m.distance<10)return '⚡ You are here';
+  if(m.distance<50)return '👻 Something is here';
+  if(m.distance<200)return '🕯️ Something is nearby';
+  return Math.round(m.distance)+'m away';
+}
+function parse(v){if(typeof v==='string'){try{return JSON.parse(v)}catch{return v}}return v}
 
 async function loadWorld({silent=false}={}){
-  if(!supabase){if(!silent)toast('Game backend is not configured yet.');return;}
+  if(!supabase)return;
   try{
-    let chapter = null;
-    const rpc = await supabase.rpc('get_current_chapter');
-    if(!rpc.error && rpc.data){chapter = typeof rpc.data === 'string' ? rpc.data : rpc.data.code;}
-    if(!chapter){
-      const {data,error}=await supabase.from('game_settings').select('key,value').in('key',['current_chapter','town_spirit']);
-      if(error) throw error;
-      for(const row of data||[]) {
-        if(row.key==='current_chapter') chapter=String(parseJsonValue(row.value));
-        if(row.key==='town_spirit' && Number.isFinite(Number(parseJsonValue(row.value)))) state.spirit=Number(parseJsonValue(row.value));
-      }
-    } else {
-      const {data}=await supabase.from('game_settings').select('key,value').eq('key','town_spirit').maybeSingle();
-      if(data && Number.isFinite(Number(parseJsonValue(data.value)))) state.spirit=Number(parseJsonValue(data.value));
+    const rpc=await supabase.rpc('get_current_chapter');
+    if(!rpc.error&&rpc.data)state.chapter=typeof rpc.data==='string'?rpc.data:rpc.data.code;
+    const {data,error}=await supabase.from('game_settings').select('key,value').in('key',['current_chapter','town_spirit']);
+    if(error)throw error;
+    for(const row of data||[]){
+      if(row.key==='current_chapter')state.chapter=String(parse(row.value));
+      if(row.key==='town_spirit'&&Number.isFinite(Number(parse(row.value))))state.spirit=Number(parse(row.value));
     }
-    if(chapter) state.chapter=chapter;
-    state.connected=true;save(); if(state.started) render();
-  }catch(error){
-    state.connected=false;save();
-    if(!silent)toast('Could not connect to the game world.');
-    console.error(error);
-  }
+    state.connected=true;save();
+  }catch(e){state.connected=false;save();if(!silent)toast('The game world could not be reached.')}
 }
-
-function ensureLocalPlayer(){
-  if(state.playerId) return true;
-  if(!state.player){
-    return false;
-  }
-  state.playerId=crypto.randomUUID();
-  state.started=true;
-  save();
-  return true;
-}
-
-function startAdventure(){
-  const input=document.getElementById('nicknameInput');
-  const nickname=(input?.value||'').trim().replace(/\s+/g,' ');
-  if(nickname.length<2){toast('Choose a nickname with at least 2 characters.');return;}
-  if(nickname.length>24){toast('Keep your nickname to 24 characters or fewer.');return;}
-  state.player=nickname;
-  ensureLocalPlayer();
-  toast(`Welcome, ${nickname}! Your adventure begins.`);
-  render();
-}
-
-function showAccountPrompt(){
-  toast('Account and prize draw entry will be added here.');
-}
-
-async function updatePresence(){
-  // Until the player chooses to create an account, their identity is local-only.
-  // We deliberately do not write anonymous player records to Supabase.
-  return;
-}
-
-function subscribeRealtime(){
-  if(!supabase) return;
-  supabase.channel('game-world')
-    .on('postgres_changes',{event:'*',schema:'public',table:'game_settings'},payload=>{
-      if(payload.new?.key==='current_chapter'){
-        state.chapter=String(parseJsonValue(payload.new.value));save(); if(state.started) { render(); toast('The game world has changed.'); }
-      }
-      if(payload.new?.key==='town_spirit'){
-        const v=Number(parseJsonValue(payload.new.value));if(Number.isFinite(v)){state.spirit=v;save(); if(state.started && state.tab!=='home') render();}
-      }
-    })
-    .subscribe();
-  setInterval(()=>loadWorld({silent:true}),60000);
-}
-
-async function contributeSpirit(amount){
-  if(!supabase || !state.playerId) return false;
-  const {data,error}=await supabase.rpc('contribute_spirit',{p_amount:amount});
-  if(error){console.debug('Spirit contribution:',error.message);return false;}
-  if(Number.isFinite(Number(data))) state.spirit=Number(data);
-  save();
-  return true;
-}
-
 async function addSpirit(n){
   state.spirit=Math.min(100,state.spirit+n);save();
-  await contributeSpirit(n);
+  if(!supabase)return;
+  const r=await supabase.rpc('contribute_spirit',{p_amount:n});
+  if(!r.error&&Number.isFinite(Number(r.data))){state.spirit=Number(r.data);save()}
 }
-
-async function discover(loc){
-  if(state.found.includes(loc.id)){toast('You have already discovered this location.');return}
-  state.found.push(loc.id);await addSpirit(loc.spirit);
-  if(loc.type==='Supply'){state.bag.gifts++;state.bag.candles++;toast('Supply found: 🎁 +1 gift and 🕯️ +1 candle')}
-  else if(loc.type==='Story'){state.bag.stars++;toast('👻 Story location discovered. ✨ +1 spirit light')}
-  else {state.bag.bells++;toast(loc.icon+' Location discovered. 🔔 +1 bell')}
-  save();
-  if(supabase && state.playerId){
-    await supabase.from('player_activity').insert({player_id:state.playerId,activity_type:'discover',metadata:{prototype_location:loc.id,chapter:state.chapter,location_name:loc.name}});
-  }
-  render();
+async function activity(type,metadata={}){
+  if(supabase&&state.playerId)await supabase.from('player_activity').insert({player_id:state.playerId,activity_type:type,metadata});
 }
-
-async function donate(){
-  if(state.bag.gifts<1){toast('You need a gift to donate.');return}
-  state.bag.gifts--;state.donations++;save();
-  await addSpirit(2);toast('🎁 Gift donated. The shared town Spirit rises!');render();
-  if(supabase && state.playerId) await supabase.from('player_activity').insert({player_id:state.playerId,activity_type:'donate',amount:1,metadata:{chapter:state.chapter}});
+function startAdventure(){
+  const input=document.getElementById('nicknameInput'), name=(input?.value||'').trim().replace(/\s+/g,' ');
+  if(name.length<2){toast('Choose a nickname with at least 2 characters.');return}
+  if(name.length>24){toast('Keep your nickname to 24 characters or fewer.');return}
+  state.player=name;state.playerId=crypto.randomUUID();state.started=true;save();
+  toast('The town has been waiting for you.');
+  render();requestLocation({recenter:true});
 }
-
-async function shareGift(){
-  if(state.bag.gifts<1){toast('You have no gift to share.');return}
-  state.bag.gifts--;save();
-  await addSpirit(2);toast('🎁 Gift shared with another adventurer nearby.');render();
+function requestLocation({recenter=true}={}){
+  if(!navigator.geolocation){toast('Location services are not available in this browser.');return}
+  const s=document.getElementById('locationStatus');if(s)s.textContent='📍 Finding your location…';
+  navigator.geolocation.getCurrentPosition(p=>{
+    updateLocation(p,recenter);startLocationWatch();
+  },e=>{
+    const msg=e.code===1?'Location was denied. Allow it for this site and try again.':e.code===2?'Your location could not be determined. Try again outdoors.':'Location took too long. Try again.';
+    if(s)s.textContent=msg;toast(msg);
+  },{enableHighAccuracy:true,maximumAge:0,timeout:20000});
 }
-
-function updateOwnLocation(position, {notify=false, recenter=false}={}){
-  state.position=[position.coords.latitude,position.coords.longitude];
-  save();
+function updateLocation(p,recenter=false){
+  state.position=[p.coords.latitude,p.coords.longitude];save();
   if(mapInstance){
-    if(window.__hcaMeMarker) window.__hcaMeMarker.setLatLng(state.position);
-    else window.__hcaMeMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(mapInstance).bindPopup('📍 You are here');
-    if(recenter) mapInstance.setView(state.position,16);
+    if(meMarker)meMarker.setLatLng(state.position);
+    else meMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(mapInstance).bindPopup('📍 You');
+    if(recenter)mapInstance.setView(state.position,17);
   }
-  if(notify) toast('📍 Your location has been updated.');
+  updateProximity();
 }
-
-function locationStatus(message){
-  const el=document.getElementById('locationStatus');
-  if(el) el.textContent=message;
-}
-
-async function requestLocation({recenter=true}={}){
-  if(!window.isSecureContext){
-    locationStatus('Location requires a secure connection (HTTPS).');
-    toast('Location is only available over HTTPS.');
-    return;
-  }
-  if(!navigator.geolocation){
-    locationStatus('This browser does not provide location services.');
-    toast('Location services are not available in this browser.');
-    return;
-  }
-  locationStatus('📍 Finding your location…');
-  try{
-    if(navigator.permissions?.query){
-      const permission=await navigator.permissions.query({name:'geolocation'});
-      if(permission.state==='denied'){
-        locationStatus('Location access is blocked. Allow Location for this site in your browser settings, then try again.');
-        toast('Location access is blocked for this site.');
-        return;
-      }
-    }
-  }catch(e){ /* Permissions API is optional. */ }
-  navigator.geolocation.getCurrentPosition(
-    p=>{
-      updateOwnLocation(p,{notify:true,recenter});
-      locationStatus('📍 Location found');
-      startLocationWatch();
-    },
-    err=>{
-      let message='We could not get your location.';
-      if(err.code===1) message='Location permission was denied. Allow location access for this site and try again.';
-      else if(err.code===2) message='Your location could not be determined. Try again outdoors with Location Services enabled.';
-      else if(err.code===3) message='Location took too long. Check Location Services and try again.';
-      locationStatus(message);
-      toast(message);
-      console.warn('Geolocation error',err.code,err.message);
-    },
-    {enableHighAccuracy:true,maximumAge:0,timeout:20000}
-  );
-}
-
 function startLocationWatch(){
-  if(!navigator.geolocation || locationWatchId!==null) return;
-  locationWatchId=navigator.geolocation.watchPosition(
-    p=>{ updateOwnLocation(p); locationStatus('📍 Live location active'); },
-    err=>{
-      console.warn('Geolocation watch error',err.code,err.message);
-      if(err.code===1) locationStatus('Location access was denied.');
-    },
-    {enableHighAccuracy:true,maximumAge:5000,timeout:30000}
-  );
+  if(locationWatchId!==null)return;
+  locationWatchId=navigator.geolocation.watchPosition(p=>{updateLocation(p);updateProximity()},()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:30000});
 }
-
-function notificationPermission(){
-  if(!('Notification' in window)){toast('Notifications are not supported by this browser.');return}
-  Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();if(r==='granted')toast('🔔 Notifications enabled.');else toast('Notifications were not enabled.');});
+function updateProximity(){
+  const m=nearest(), e=document.getElementById('proximity');
+  if(e)e.textContent=proximityText(m);
+  document.querySelectorAll('[data-location-id]').forEach(x=>{
+    const l=locations.find(a=>a.id===x.dataset.locationId);
+    if(l)x.disabled=!state.position||distance(state.position,[l.lat,l.lng])>25;
+  });
 }
-
 function chapterText(){
-  if(state.chapter==='VEIL') return {title:'The Veil',intro:'Something has changed in Hexham. The boundary between the ordinary world and something older is becoming thin.',meter:'Hexham Spirit',notice:'The veil is open. Watch the map and investigate anything unusual.'};
-  if(state.chapter==='CHRISTMAS') return {title:'Christmas Awakens',intro:'The lights are on. A new chapter of the story has begun across Hexham.',meter:'Hexham Christmas Spirit',notice:'The Christmas world is now awake.'};
-  return {title:'The Spirits Awaken',intro:'Something strange is happening in Hexham. Explore the town, investigate unusual places and discover what has awakened.',meter:'Hexham Spirit',notice:'The spirits have awakened. The town needs curious adventurers.'};
+  if(state.chapter==='VEIL')return {title:'The Veil',intro:'The boundary between the ordinary world and something older is becoming thin.',notice:'Watch the map. Something may cross.'};
+  if(state.chapter==='CHRISTMAS')return {title:'Christmas Awakens',intro:'The lights are on. A new chapter has begun across Hexham.',notice:'The Christmas world is now awake.'};
+  return {title:'The Spirits Awaken',intro:'Something strange is happening in Hexham. Investigate it before it finds you.',notice:'Three places. Three memories. One presence.'};
 }
-
-function home(){const c=chapterText(); if(!state.started) return `<div class="panel"><section class="hero"><h1>${c.title}</h1><p>${c.intro}</p></section><div class="card"><b>Choose your adventurer name</b><p class="muted">Use a nickname. You can start playing without giving us your email address.</p><input id="nicknameInput" maxlength="24" placeholder="Your nickname" style="width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;font:inherit;margin-top:8px" onkeydown="if(event.key==='Enter')startAdventure()"><button class="action" onclick="startAdventure()">Start the adventure</button></div><div class="notice"><strong>🔒 Privacy</strong><span>Your nickname is your game identity. Email is only needed later if you choose to save your progress permanently or enter the prize draw.</span></div></div>`; return `<div class="panel"><section class="hero"><h1>${c.title}</h1><p>${c.intro}</p><button class="action" onclick="setTab('map')">Explore Hexham</button></section><div class="notice"><strong>🕯️ Story status</strong><span>${c.notice}</span></div><div class="grid"><div class="stat"><b>${state.found.length}/${locations.length}</b><span class="muted">locations discovered</span></div><div class="stat"><b>${state.donations}</b><span class="muted">gifts donated</span></div></div><div class="section">Your mission</div><div class="mission"><b>🔎 Explore the town</b><p>Find locations, collect resources and help build the shared world.</p><button class="action secondary" onclick="setTab('map')">Open the map</button></div><div class="section">Your adventurer</div><div class="card"><b>👤 ${state.player}</b><p class="muted">Your nickname is visible only as your game identity. No email is required to play.</p><button class="action secondary" onclick="showAccountPrompt()">Save progress & enter the prize draw</button></div><div class="section">Stay in the story</div><div class="card"><div class="cardhead"><div><b>🔔 Game notifications</b><div class="muted">Get major story events and live missions. No constant marketing messages.</div></div></div><button class="action" onclick="notificationPermission()">Enable notifications</button></div><div class="card"><b>🟢 ${state.connected?'Connected to the live game world':'Connecting to game world…'}</b><div class="muted">Player: ${state.playerId?'connected':'setting up'}</div></div></div>`}
-function mapTab(){return `<div class="panel"><div class="card"><div class="cardhead"><div><b>🗺️ Hexham is the game board</b><div id="locationStatus" class="muted">📍 Waiting for your location…</div></div><button class="action" style="width:auto;margin:0" onclick="requestLocation({recenter:true})">📍 Find me</button></div><div class="muted" style="margin-top:8px">Allow location access when your browser asks. Your exact location is only shown to you.</div></div><div id="map" class="mapwrap"></div><div class="section">Nearby missions</div>${locations.slice(0,4).map(l=>locCard(l)).join('')}</div>`}
-function locCard(l){const found=state.found.includes(l.id);return `<div class="card"><div class="cardhead"><div><b>${l.icon} ${l.name}</b><div class="muted">${l.type} • +${l.spirit} Spirit</div></div><span class="pill">${found?'FOUND':'DISCOVER'}</span></div><p>${l.desc}</p><button class="action ${found?'secondary':''}" onclick="discover(locations.find(x=>x.id==='${l.id}'))">${found?'Already discovered':'Discover location'}</button></div>`}
-function bag(){return `<div class="panel"><section class="hero"><h1>🎒 My Bag</h1><p>Resources can be collected, used and shared. Nearby player exchange will be enabled as multiplayer expands.</p></section><div class="section">Supplies</div><div class="inventory"><div class="item"><div class="emoji">🎁</div><b>${state.bag.gifts}</b><span class="muted">Gifts</span></div><div class="item"><div class="emoji">🕯️</div><b>${state.bag.candles}</b><span class="muted">Candles</span></div><div class="item"><div class="emoji">🔔</div><b>${state.bag.bells}</b><span class="muted">Bells</span></div><div class="item"><div class="emoji">⭐</div><b>${state.bag.stars}</b><span class="muted">Spirit light</span></div><div class="item"><div class="emoji">🍪</div><b>${state.bag.treats}</b><span class="muted">Treats</span></div></div><div class="section">Help the town</div><div class="card"><b>🎁 Donate</b><p class="muted">Every donation increases the shared town Spirit.</p><button class="action" onclick="donate()">Donate one gift</button></div><div class="card"><b>🤝 Share</b><p class="muted">The full live multiplayer exchange will use nearby players.</p><button class="action" onclick="shareGift()">Share one gift</button></div></div>`}
-function events(){return `<div class="panel"><section class="hero"><h1>📣 What’s happening?</h1><p>The game world can change automatically as the story progresses. Only the current chapter is shown to players.</p></section><div class="section">Current chapter</div><div class="card"><b>${chapterText().title}</b><p class="muted">${chapterText().notice}</p></div><div class="card"><b>🌐 Shared world</b><p>The town Spirit and live events are stored in the shared game backend. When another player changes the world, connected players can receive the update.</p></div></div>`}
-
-function render(){
-  updateHeader();document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
-  app.innerHTML=state.tab==='home'?home():state.tab==='map'?mapTab():state.tab==='bag'?bag():events();
-  if(state.tab==='map') initMap();
+function home(){
+  const c=chapterText();
+  if(!state.started)return `<div class="panel"><section class="hero"><h1>${c.title}</h1><p>${c.intro}</p></section>
+  <div class="card"><b>Choose your adventurer name</b><p class="muted">Use a nickname. No email is needed to play.</p>
+  <input id="nicknameInput" maxlength="24" autocomplete="nickname" placeholder="Your nickname" style="width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;font:inherit;margin-top:8px">
+  <button class="action" onclick="startAdventure()">Start the adventure</button></div>
+  <div class="notice"><strong>🔒 Your identity</strong><span>Your nickname is your game identity. Your exact GPS position is only shown to you.</span></div></div>`;
+  const done=state.marley;
+  return `<div class="panel"><section class="hero"><div class="eyebrow">CHAPTER 1 • HALLOWEEN</div><h1>${c.title}</h1><p>${c.intro}</p><button class="action" onclick="setTab('map')">Enter Hexham</button></section>
+  <div class="storybar"><b>${done?'MARLEY FOUND':'Something is moving'}</b><span>${done?'You have discovered the first name in the story.':'Follow the disturbances. The town will reveal the rest.'}</span></div>
+  <div class="section">Your investigation</div>
+  <div class="missionrow"><span>⛓️ Old Gaol</span><b>${state.progress.gaol}/3 traces</b></div>
+  <div class="missionrow"><span>🎬 Forum Cinema</span><b>${state.progress.forum?'Solved':'Locked'}</b></div>
+  <div class="missionrow"><span>🎭 Queen's Hall</span><b>${state.progress.hall?'Heard':'Locked'}</b></div>
+  <div class="card"><b>👤 ${state.player}</b><div class="muted">Live world: ${state.connected?'connected':'offline cache'}</div></div></div>`;
+}
+function mapTab(){
+  const m=nearest();
+  return `<div class="panel"><div class="gamehud"><div><b>${proximityText(m)}</b><div id="proximity" class="muted">${proximityText(m)}</div></div><button class="action mini" onclick="requestLocation({recenter:true})">📍 Find me</button></div>
+  <div id="map" class="mapwrap"></div>
+  <div class="section">The investigation</div>
+  ${locations.map(l=>locationCard(l)).join('')}
+  ${state.marley?'<div class="reveal"><div class="eyebrow">FIRST REVEAL</div><h2>MARLEY</h2><p>You found him. But he is not the one you are supposed to be looking for.</p></div>':''}
+  </div>`;
+}
+function locationCard(l){
+  const d=state.position?Math.round(distance(state.position,[l.lat,l.lng])):null;
+  let status='Approach the location';
+  if(l.id==='gaol')status=state.progress.gaol>=3?'Investigated':state.progress.gaol+'/3 traces';
+  if(l.id==='forum')status=state.progress.forum?'Memory reconstructed':'Reconstruct the film';
+  if(l.id==='hall')status=state.progress.hall?'Audience heard':'Listen at the hall';
+  const near=d!==null&&d<=25;
+  return `<div class="locationcard ${near?'near':''}"><div class="locicon">${l.icon}</div><div class="locbody"><b>${l.title}</b><span>${l.name} • ${d===null?'GPS required':d+'m'}</span><p>${near?l.prompt:l.text}</p>
+  <button class="action ${near?'':'secondary'}" data-location-id="${l.id}" onclick="playLocation('${l.id}')" ${near?'':'disabled'}>${near?status:'Move closer'}</button></div></div>`;
+}
+function playLocation(id){
+  const l=locations.find(x=>x.id===id);if(!l||!state.position||distance(state.position,[l.lat,l.lng])>25){toast('Move closer to the location.');return}
+  if(id==='gaol')playGaol(l);
+  if(id==='forum')playForum(l);
+  if(id==='hall')playHall(l);
+}
+function playGaol(l){
+  const n=state.progress.gaol;
+  if(n>=3){toast('The traces are gone. Something followed them.');spawnSpirit();return}
+  state.progress.gaol=n+1;addSpirit(l.spirit/3);activity('investigate_trace',{location_id:l.id,trace:n+1});
+  const clue=l.clues[n];
+  save();render();
+  toast(l.traces[n]+': '+clue);
+  if(state.progress.gaol===3){setTimeout(()=>{toast('⚠️ SPIRIT ACTIVITY');spawnSpirit()},1200)}
+}
+function playForum(l){
+  if(state.progress.gaol<3){toast('You need to understand the Old Gaol first.');return}
+  if(state.progress.forum){toast('The empty seat is occupied again.');return}
+  const answer=prompt('Reconstruct the film. Enter the order of the three fragments as numbers, e.g. 1-2-3');
+  if(!answer)return;
+  if(answer.replace(/\s/g,'')!=='1-2-3'){toast('That is not what happened. Look again.');return}
+  state.progress.forum=true;save();addSpirit(l.spirit);activity('solve_memory',{location_id:l.id});
+  render();toast('The film continues. Someone is sitting in the empty seat.');
+  setTimeout(()=>{toast('⚠️ DON’T LET IT SEE YOU');spawnSpirit()},1000);
+}
+function playHall(l){
+  if(!state.progress.forum){toast('Something at the cinema is still unfinished.');return}
+  if(state.progress.hall){toast('You can still hear the applause.');return}
+  state.progress.hall=true;save();addSpirit(l.spirit);activity('listen_audience',{location_id:l.id});
+  render();toast('You hear applause. Then a voice: “You found him.”');
+  setTimeout(()=>revealMarley(),1500);
+}
+function revealMarley(){
+  state.marley=true;save();render();toast('MARLEY');
+  spawnSpirit();
+}
+function spawnSpirit(){
+  if(!mapInstance)return;
+  const path=[[54.97005,-2.10395],[54.97035,-2.1028],[54.96972,-2.10182],[54.97032,-2.10155],[54.9694,-2.1033]];
+  let i=0;
+  if(spiritTimer)clearInterval(spiritTimer);
+  spiritMarker=L.circleMarker(path[0],{radius:11,weight:3}).addTo(mapInstance).bindPopup('👻 Something is moving');
+  spiritTimer=setInterval(()=>{i=(i+1)%path.length;spiritMarker.setLatLng(path[i]);toast('👻 The spirit moved.');},12000);
 }
 function initMap(){
-  if(mapInstance){
-    setTimeout(()=>{ if(mapInstance) mapInstance.invalidateSize(); },50);
-    return;
-  }
-  const map=L.map('map').setView(state.position||HEXHAM,state.position?16:15);
-  mapInstance=map;
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
+  if(mapInstance){setTimeout(()=>mapInstance.invalidateSize(),50);updateProximity();return}
+  mapInstance=L.map('map').setView(state.position||HEXHAM,state.position?17:15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(mapInstance);
   locations.forEach(l=>{
-    const marker=L.marker([l.lat,l.lng]).addTo(map);
-    marker.bindPopup(`<b>${l.icon} ${l.name}</b><br>${l.type}<br><button onclick="discover(locations.find(x=>x.id==='${l.id}'));document.querySelector('.leaflet-popup-close-button')?.click()">${state.found.includes(l.id)?'Found':'Discover'}</button>`);
+    const marker=L.marker([l.lat,l.lng]).addTo(mapInstance);
+    marker.bindPopup('<b>'+l.icon+' '+l.name+'</b><br><span>'+l.title+'</span>');
   });
-  if(state.position){
-    window.__hcaMeMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(map).bindPopup('📍 You are here');
-    locationStatus('📍 Location found');
-    startLocationWatch();
-  }else{
-    locationStatus('📍 Finding your location…');
-    setTimeout(()=>requestLocation({recenter:true}),250);
-  }
+  if(state.position){meMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(mapInstance).bindPopup('📍 You');startLocationWatch()}
+  if(state.progress.gaol>=3||state.progress.forum||state.marley)spawnSpirit();
+  updateProximity();
 }
-
-window.locations=locations;window.setTab=setTab;window.discover=discover;window.donate=donate;window.shareGift=shareGift;window.requestLocation=requestLocation;window.notificationPermission=notificationPermission;window.startAdventure=startAdventure;window.showAccountPrompt=showAccountPrompt;
+function bag(){return `<div class="panel"><section class="hero"><h1>📓 Journal</h1><p>The things you have actually discovered stay with you.</p></section>
+<div class="section">Case file</div><div class="card"><b>⛓️ The Prisoner</b><p class="muted">${state.progress.gaol}/3 traces recovered. Something was imprisoned here that was not a prisoner.</p></div>
+<div class="card"><b>🎬 The Memory</b><p class="muted">${state.progress.forum?'The film continues. Someone is sitting in the empty seat.':'The cinema is waiting.'}</p></div>
+<div class="card"><b>🎭 The Audience</b><p class="muted">${state.progress.hall?'Three places. Three memories. One presence.':'The hall remembers.'}</p></div>
+${state.marley?'<div class="reveal"><div class="eyebrow">NAME RECOVERED</div><h2>MARLEY</h2><p>You have found him. Nothing else about him is explained. Not yet.</p></div>':''}</div>`}
+function events(){return `<div class="panel"><section class="hero"><div class="eyebrow">LIVE WORLD</div><h1>${chapterText().title}</h1><p>${chapterText().notice}</p></section>
+<div class="card"><b>✨ Hexham Spirit ${state.spirit}%</b><div class="meter"><i style="width:${state.spirit}%"></i></div><p class="muted">Every player's actions can change the shared world.</p></div>
+<div class="card"><b>👻 Moving spirits</b><p class="muted">Some encounters are not waiting at a pin. When activity is triggered, a spirit can move across the map.</p></div>
+<div class="card"><b>🔒 The next chapter is hidden</b><p class="muted">The game only reveals what is happening now. The world changes when the server says it changes.</p></div></div>`}
+function render(){
+  updateHeader();
+  app.innerHTML=state.tab==='home'?home():state.tab==='map'?mapTab():state.tab==='bag'?bag():events();
+  if(state.tab==='map')setTimeout(initMap,0);
+  if(state.tab==='map')setTimeout(updateProximity,30);
+}
+function notifications(){
+  if(!('Notification' in window)){toast('Notifications are not supported here.');return}
+  Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();toast(r==='granted'?'🔔 Notifications enabled.':'Notifications not enabled.')});
+}
+window.setTab=setTab;window.startAdventure=startAdventure;window.requestLocation=requestLocation;window.playLocation=playLocation;window.notifications=notifications;
 
 (async function boot(){
-  // Render the nickname screen immediately and never re-render it while the player is typing.
   render();
   await loadWorld({silent:true});
-  // A player does not exist until they press Start Adventure.
-  if(state.started){
-    ensureLocalPlayer();
-    await updatePresence();
-    subscribeRealtime();
-    render();
-  }
+  if(state.started){render();activity('session_start',{chapter:state.chapter})}
 })();
