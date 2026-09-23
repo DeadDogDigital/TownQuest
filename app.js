@@ -79,7 +79,7 @@ function startAdventure(){
   const input=document.getElementById('nicknameInput'), name=(input?.value||'').trim().replace(/\s+/g,' ');
   if(name.length<2){toast('Choose a nickname with at least 2 characters.');return}
   if(name.length>24){toast('Keep your nickname to 24 characters or fewer.');return}
-  state.player=name;state.playerId=crypto.randomUUID();state.started=true;save();
+  state.player=name;state.playerId=crypto.randomUUID();state.started=true;state.tab='map';save();
   toast('The town has been waiting for you.');
   render();requestLocation({recenter:true});
 }
@@ -96,11 +96,12 @@ function requestLocation({recenter=true}={}){
 function updateLocation(p,recenter=false){
   state.position=[p.coords.latitude,p.coords.longitude];save();
   if(mapInstance){
-    if(meMarker)meMarker.setLatLng(state.position);
-    else meMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(mapInstance).bindPopup('📍 You');
+    updatePlayerMarker();
     if(recenter)mapInstance.setView(state.position,17);
   }
   updateProximity();
+  updateWorldHud();
+  if(mapInstance)updateWorldObjects();
 }
 function startLocationWatch(){
   if(locationWatchId!==null)return;
@@ -137,11 +138,14 @@ function home(){
 }
 function mapTab(){
   const m=nearest();
-  return `<div class="panel"><div class="gamehud"><div><b>${proximityText(m)}</b><div id="proximity" class="muted">${proximityText(m)}</div></div><button class="action mini" onclick="requestLocation({recenter:true})">📍 Find me</button></div>
-  <div id="map" class="mapwrap"></div>
-  <div class="section">The investigation</div>
-  ${locations.map(l=>locationCard(l)).join('')}
-  ${state.marley?'<div class="reveal"><div class="eyebrow">FIRST REVEAL</div><h2>MARLEY</h2><p>You found him. But he is not the one you are supposed to be looking for.</p></div>':''}
+  return `<div class="panel game-panel">
+    <div class="gamehud"><div><div class="eyebrow">THE TOWN IS ALIVE</div><b id="proximity">${proximityText(m)}</b></div><button class="action mini" onclick="requestLocation({recenter:true})">📍 Find me</button></div>
+    <div class="world-shell" id="worldShell">
+      <div id="map" class="mapwrap"></div>
+      <div class="world-vignette"></div>
+      <div class="world-hud" id="worldHud"></div>
+    </div>
+    <div class="maphint">Move through Hexham. Watch for movement, disturbances and things that don't belong.</div>
   </div>`;
 }
 function locationCard(l){
@@ -165,55 +169,169 @@ function playGaol(l){
   const next=l.zones[state.progress.gaol];
   if(!next){toast('The traces are gone. Something followed them.');spawnSpirit();return}
   const d=distance(state.position,[next.lat,next.lng]);
-  if(d>18){toast('The disturbance is nearby. Search this part of the Gaol.');return}
+  if(d>18){showWorldMessage('The disturbance slips away. Keep searching this part of the Gaol.');pulseMap();return}
   state.progress.gaol+=1;
   addSpirit(l.spirit/3);
   activity('investigate_zone',{location_id:l.id,zone_id:next.id});
-  save();render();
-  toast(next.title+': '+next.clue);
+  save();
+  showDiscovery(next.title,next.clue);
   if(state.progress.gaol===3){
-    setTimeout(()=>{toast('⚠️ SPIRIT ACTIVITY');spawnSpirit()},1200)
+    setTimeout(()=>{showWorldMessage('⚠️ Something has noticed you.');spawnSpirit();vibrate([80,40,180])},1600)
+  } else {
+    setTimeout(()=>renderMapWorld(),900);
   }
 }
 function playForum(l){
-  if(state.progress.gaol<3){toast('You need to understand the Old Gaol first.');return}
-  if(state.progress.forum){toast('The empty seat is occupied again.');return}
-  const answer=prompt('Reconstruct the film. Enter the order of the three fragments as numbers, e.g. 1-2-3');
-  if(!answer)return;
-  if(answer.replace(/\s/g,'')!=='1-2-3'){toast('That is not what happened. Look again.');return}
-  state.progress.forum=true;save();addSpirit(l.spirit);activity('solve_memory',{location_id:l.id});
-  render();toast('The film continues. Someone is sitting in the empty seat.');
-  setTimeout(()=>{toast('⚠️ DON’T LET IT SEE YOU');spawnSpirit()},1000);
+  if(state.progress.gaol<3){showWorldMessage('The cinema is quiet. The answer is somewhere behind you.');return}
+  if(state.progress.forum){showWorldMessage('The empty seat is occupied again.');return}
+  openMemoryPuzzle();
 }
 function playHall(l){
-  if(!state.progress.forum){toast('Something at the cinema is still unfinished.');return}
-  if(state.progress.hall){toast('You can still hear the applause.');return}
+  if(!state.progress.forum){showWorldMessage('The hall is listening. Finish what you started at the cinema.');return}
+  if(state.progress.hall){showWorldMessage('The applause is still there, just beneath the ordinary sounds of the town.');return}
   state.progress.hall=true;save();addSpirit(l.spirit);activity('listen_audience',{location_id:l.id});
-  render();toast('You hear applause. Then a voice: “You found him.”');
-  setTimeout(()=>revealMarley(),1500);
+  showDiscovery('THE AUDIENCE','The applause grows louder. Then the crowd falls silent.');
+  vibrate([50,80,50,180]);
+  setTimeout(()=>revealMarley(),2200);
 }
 function revealMarley(){
-  state.marley=true;save();render();toast('MARLEY');
-  spawnSpirit();
+  state.marley=true;save();
+  showDiscovery('MARLEY','You found him. But he is not the one you are supposed to be looking for.');
+  vibrate([100,60,100,60,300]);
+  setTimeout(()=>{spawnSpirit();renderMapWorld()},1800);
+}
+function vibrate(pattern=[80]){
+  if(navigator.vibrate)navigator.vibrate(pattern);
+}
+function showWorldMessage(message){
+  const hud=document.getElementById('worldHud');
+  if(!hud)return toast(message);
+  hud.innerHTML=`<div class="hud-message"><span>${message}</span></div>`;
+  hud.classList.add('show');
+  vibrate([35]);
+  clearTimeout(window.__hud);
+  window.__hud=setTimeout(()=>hud.classList.remove('show'),5000);
+}
+function showDiscovery(title,text){
+  const hud=document.getElementById('worldHud');
+  if(!hud)return toast(title+': '+text);
+  hud.innerHTML=`<div class="discovery"><div class="eyebrow">DISCOVERY</div><h2>${title}</h2><p>${text}</p></div>`;
+  hud.classList.add('show');
+  vibrate([70,40,120]);
+  clearTimeout(window.__hud);
+  window.__hud=setTimeout(()=>hud.classList.remove('show'),6500);
+}
+function pulseMap(){
+  const shell=document.getElementById('worldShell');
+  if(!shell)return;
+  shell.classList.remove('pulse-now');void shell.offsetWidth;shell.classList.add('pulse-now');
+}
+function openMemoryPuzzle(){
+  const hud=document.getElementById('worldHud');
+  if(!hud)return;
+  hud.innerHTML=`<div class="puzzle"><div class="eyebrow">THE MEMORY</div><h2>Something is wrong with the film.</h2><p>Three moments. One sequence. Tap them in the order they happened.</p>
+    <div class="film-options">
+      <button data-order="1" onclick="memoryPick(1)">🎞️ <span>A figure enters</span></button>
+      <button data-order="2" onclick="memoryPick(2)">🚪 <span>The doors close</span></button>
+      <button data-order="3" onclick="memoryPick(3)">💺 <span>An empty seat</span></button>
+    </div>
+    <div id="memoryOrder" class="memory-order">Your sequence will appear here.</div>
+    <button class="action secondary" onclick="closeWorldHud()">Back to the world</button>
+  </div>`;
+  hud.classList.add('show');
+}
+function memoryPick(n){
+  const hud=document.getElementById('worldHud');
+  const order=window.__memoryOrder||[];
+  if(order.includes(n))return;
+  order.push(n);window.__memoryOrder=order;
+  const out=document.getElementById('memoryOrder');
+  if(out)out.textContent=order.join('  →  ');
+  vibrate([25]);
+  if(order.length===3){
+    if(order.join('')!=='123'){
+      window.__memoryOrder=[];
+      setTimeout(()=>{if(out)out.textContent='No. Watch the memory again.';vibrate([100,100])},300);
+      return;
+    }
+    const l=locations.find(x=>x.id==='forum');
+    state.progress.forum=true;save();addSpirit(l.spirit);activity('solve_memory',{location_id:l.id});
+    window.__memoryOrder=[];
+    showDiscovery('THE EMPTY SEAT','The film continues. Someone is sitting in the empty seat.');
+    setTimeout(()=>{showWorldMessage('⚠️ DON’T LET IT SEE YOU');spawnSpirit();renderMapWorld()},1500);
+  }
+}
+function closeWorldHud(){window.__memoryOrder=[];const hud=document.getElementById('worldHud');if(hud)hud.classList.remove('show')}
+function renderMapWorld(){
+  if(!mapInstance)return;
+  updateWorldObjects();
+  updateWorldHud();
+}
+function updateWorldHud(){
+  const hud=document.getElementById('worldHud');
+  if(!hud)return;
+  if(hud.classList.contains('show'))return;
+  const m=nearest();
+  let message='Follow the disturbances.';
+  if(state.marley)message='Something is still moving. The story is not finished.';
+  else if(state.progress.hall)message='Listen. The town remembers.';
+  else if(state.progress.forum)message='Something left the cinema. Follow it.';
+  else if(state.progress.gaol>=3)message='The disturbance has moved. Follow it.';
+  else if(m&&m.distance<55)message='Something is here. Look around you.';
+  else if(m&&m.distance<220)message='Something is nearby.';
+  hud.innerHTML=`<div class="hud-message"><span>${message}</span></div>`;
+}
+function updateWorldObjects(){
+  if(!mapInstance)return;
+  document.querySelectorAll('.world-object').forEach(e=>e.remove());
+  const shell=document.getElementById('worldShell');
+  if(shell)shell.dataset.spirit=state.spirit<40?'low':state.spirit>70?'high':'mid';
+  // Landmarks are deliberately subtle: the map is the world, not a list of pins.
+  locations.forEach(l=>{
+    const icon=L.divIcon({className:'landmark-icon',html:`<div class="landmark"><span>${l.icon}</span><small>${l.name.replace('Hexham ','')}</small></div>`,iconSize:[120,34],iconAnchor:[60,17]});
+    const marker=L.marker([l.lat,l.lng],{icon,interactive:false}).addTo(mapInstance);
+    marker.getElement()?.classList.add('world-object');
+  });
+  const zone=locations[0].zones[state.progress.gaol];
+  if(zone&&!state.progress.forum){
+    const jitter=[[0.00012,-0.00010],[-0.00009,0.00013],[0.00006,0.00011]][state.progress.gaol]||[0,0];
+    const pos=[zone.lat+jitter[0],zone.lng+jitter[1]];
+    const icon=L.divIcon({className:'disturbance-icon',html:'<div class="disturbance"><i></i><span>◌</span></div>',iconSize:[64,64],iconAnchor:[32,32]});
+    const marker=L.marker(pos,{icon,interactive:true}).addTo(mapInstance);
+    marker.getElement()?.classList.add('world-object');
+    marker.on('click',()=>showWorldMessage('The disturbance is close. Search the area.'));
+  }
+  if(state.progress.gaol>=3||state.progress.forum||state.marley)spawnSpirit();
+  if(state.position)updatePlayerMarker();
+}
+function updatePlayerMarker(){
+  if(!mapInstance||!state.position)return;
+  if(meMarker)meMarker.setLatLng(state.position);
+  else{
+    const icon=L.divIcon({className:'player-icon',html:'<div class="player-dot"><span></span></div>',iconSize:[30,30],iconAnchor:[15,15]});
+    meMarker=L.marker(state.position,{icon,interactive:false}).addTo(mapInstance);
+  }
 }
 function spawnSpirit(){
   if(!mapInstance)return;
-  const path=[[54.97131,-2.10003],[54.97160,-2.10070],[54.97188,-2.10130],[54.97060,-2.10260],[54.96940,-2.10330]];
+  const path=[[54.97130,-2.10010],[54.97160,-2.10070],[54.97188,-2.10130],[54.97060,-2.10260],[54.96940,-2.10330]];
   let i=0;
   if(spiritTimer)clearInterval(spiritTimer);
-  spiritMarker=L.circleMarker(path[0],{radius:11,weight:3}).addTo(mapInstance).bindPopup('👻 Something is moving');
-  spiritTimer=setInterval(()=>{i=(i+1)%path.length;spiritMarker.setLatLng(path[i]);toast('👻 The spirit moved.');},12000);
+  const icon=L.divIcon({className:'spirit-icon',html:'<div class="spirit-entity">✦</div>',iconSize:[44,44],iconAnchor:[22,22]});
+  spiritMarker=L.marker(path[0],{icon,interactive:false}).addTo(mapInstance);
+  spiritTimer=setInterval(()=>{
+    i=(i+1)%path.length;
+    spiritMarker.setLatLng(path[i]);
+    showWorldMessage('👻 Something moved.');
+  },9000);
 }
 function initMap(){
-  if(mapInstance){setTimeout(()=>mapInstance.invalidateSize(),50);updateProximity();return}
-  mapInstance=L.map('map').setView(state.position||HEXHAM,state.position?17:15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(mapInstance);
-  locations.forEach(l=>{
-    const marker=L.marker([l.lat,l.lng]).addTo(mapInstance);
-    marker.bindPopup('<b>'+l.icon+' '+l.name+'</b><br><span>'+l.title+'</span>');
-  });
-  if(state.position){meMarker=L.circleMarker(state.position,{radius:9,weight:3}).addTo(mapInstance).bindPopup('📍 You');startLocationWatch()}
-  if(state.progress.gaol>=3||state.progress.forum||state.marley)spawnSpirit();
+  if(mapInstance){setTimeout(()=>mapInstance.invalidateSize(),50);renderMapWorld();return}
+  mapInstance=L.map('map',{zoomControl:false}).setView(state.position||HEXHAM,state.position?17:15);
+  L.control.zoom({position:'bottomright'}).addTo(mapInstance);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',className:'game-tiles'}).addTo(mapInstance);
+  if(state.position){updatePlayerMarker();startLocationWatch()}
+  setTimeout(()=>{mapInstance.invalidateSize();renderMapWorld();updateWorldHud()},50);
   updateProximity();
 }
 function bag(){return `<div class="panel"><section class="hero"><h1>📓 Journal</h1><p>The things you have actually discovered stay with you.</p></section>
@@ -247,7 +365,7 @@ function notifications(){
   if(!('Notification' in window)){toast('Notifications are not supported here.');return}
   Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();toast(r==='granted'?'🔔 Notifications enabled.':'Notifications not enabled.')});
 }
-window.setTab=setTab;window.startAdventure=startAdventure;window.requestLocation=requestLocation;window.playLocation=playLocation;window.notifications=notifications;
+window.setTab=setTab;window.startAdventure=startAdventure;window.requestLocation=requestLocation;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;
 
 (async function boot(){
   render();
