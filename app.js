@@ -21,7 +21,7 @@ const locations = [
    traces:['Faint applause','A voice behind you','An empty entrance']},
 ];
 
-let mapInstance=null, spiritMarker=null, meMarker=null, locationWatchId=null, spiritTimer=null;
+let mapInstance=null, spiritMarker=null, meMarker=null, locationWatchId=null, spiritTimer=null, worldObjectLayers=[];
 let state=JSON.parse(localStorage.getItem('townquest-v3')||'null')||{
   tab:'home',player:'',playerId:null,started:false,position:null,chapter:'HALLOWEEN',
   spirit:37,found:[],progress:{gaol:0,forum:false,hall:false},marley:false,notificationOptIn:false,connected:false
@@ -283,14 +283,15 @@ function updateWorldHud(){
 }
 function updateWorldObjects(){
   if(!mapInstance)return;
-  document.querySelectorAll('.world-object').forEach(e=>e.remove());
+  worldObjectLayers.forEach(layer=>{try{mapInstance.removeLayer(layer)}catch(e){}});
+  worldObjectLayers=[];
   const shell=document.getElementById('worldShell');
   if(shell)shell.dataset.spirit=state.spirit<40?'low':state.spirit>70?'high':'mid';
   // Landmarks are deliberately subtle: the map is the world, not a list of pins.
   locations.forEach(l=>{
     const icon=L.divIcon({className:'landmark-icon',html:`<div class="landmark"><span>${l.icon}</span><small>${l.name.replace('Hexham ','')}</small></div>`,iconSize:[120,34],iconAnchor:[60,17]});
     const marker=L.marker([l.lat,l.lng],{icon,interactive:false}).addTo(mapInstance);
-    marker.getElement()?.classList.add('world-object');
+    worldObjectLayers.push(marker);
   });
   const zone=locations[0].zones[state.progress.gaol];
   if(zone&&!state.progress.forum){
@@ -298,10 +299,12 @@ function updateWorldObjects(){
     const pos=[zone.lat+jitter[0],zone.lng+jitter[1]];
     const icon=L.divIcon({className:'disturbance-icon',html:'<div class="disturbance"><i></i><span>◌</span></div>',iconSize:[64,64],iconAnchor:[32,32]});
     const marker=L.marker(pos,{icon,interactive:true}).addTo(mapInstance);
-    marker.getElement()?.classList.add('world-object');
+    worldObjectLayers.push(marker);
     marker.on('click',()=>showWorldMessage('The disturbance is close. Search the area.'));
   }
-  if(state.progress.gaol>=3||state.progress.forum||state.marley)spawnSpirit();
+  if(state.progress.gaol>=3||state.progress.forum||state.marley) {
+    if(!spiritMarker)spawnSpirit();
+  }
   if(state.position)updatePlayerMarker();
 }
 function updatePlayerMarker(){
@@ -317,12 +320,14 @@ function spawnSpirit(){
   const path=[[54.97130,-2.10010],[54.97160,-2.10070],[54.97188,-2.10130],[54.97060,-2.10260],[54.96940,-2.10330]];
   let i=0;
   if(spiritTimer)clearInterval(spiritTimer);
+  if(spiritMarker){try{mapInstance.removeLayer(spiritMarker)}catch(e){}}
   const icon=L.divIcon({className:'spirit-icon',html:'<div class="spirit-entity">✦</div>',iconSize:[44,44],iconAnchor:[22,22]});
   spiritMarker=L.marker(path[0],{icon,interactive:false}).addTo(mapInstance);
   spiritTimer=setInterval(()=>{
     i=(i+1)%path.length;
     spiritMarker.setLatLng(path[i]);
     showWorldMessage('👻 Something moved.');
+    vibrate([25,40,25]);
   },9000);
 }
 function initMap(){
@@ -345,6 +350,7 @@ function events(){return `<div class="panel"><section class="hero"><div class="e
 <div class="card"><b>🔒 The next chapter is hidden</b><p class="muted">The game only reveals what is happening now. The world changes when the server says it changes.</p></div></div>`}
 function destroyMap(){
   if(spiritTimer){clearInterval(spiritTimer);spiritTimer=null}
+  worldObjectLayers=[];
   if(mapInstance){
     try{mapInstance.remove()}catch(e){}
     mapInstance=null;
@@ -358,6 +364,7 @@ function render(){
   destroyMap();
   updateHeader();
   app.innerHTML=state.tab==='home'?home():state.tab==='map'?mapTab():state.tab==='bag'?bag():events();
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
   if(state.tab==='map')setTimeout(initMap,0);
   if(state.tab==='map')setTimeout(updateProximity,30);
 }
