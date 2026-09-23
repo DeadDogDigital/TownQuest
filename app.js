@@ -216,7 +216,19 @@ function events(){return `<div class="panel"><section class="hero"><div class="e
 <div class="card"><b>✨ Hexham Spirit ${state.spirit}%</b><div class="meter"><i style="width:${state.spirit}%"></i></div><p class="muted">Every player's actions can change the shared world.</p></div>
 <div class="card"><b>👻 Moving spirits</b><p class="muted">Some encounters are not waiting at a pin. When activity is triggered, a spirit can move across the map.</p></div>
 <div class="card"><b>🔒 The next chapter is hidden</b><p class="muted">The game only reveals what is happening now. The world changes when the server says it changes.</p></div></div>`}
+function destroyMap(){
+  if(spiritTimer){clearInterval(spiritTimer);spiritTimer=null}
+  if(mapInstance){
+    try{mapInstance.remove()}catch(e){}
+    mapInstance=null;
+  }
+  spiritMarker=null;
+  meMarker=null;
+}
 function render(){
+  // Leaflet is bound to a specific DOM element. Our screens are re-rendered,
+  // so an old map instance must be destroyed before replacing #app.
+  destroyMap();
   updateHeader();
   app.innerHTML=state.tab==='home'?home():state.tab==='map'?mapTab():state.tab==='bag'?bag():events();
   if(state.tab==='map')setTimeout(initMap,0);
