@@ -6,14 +6,14 @@ const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPAB
 
 const HEXHAM = [54.9694, -2.1033];
 const locations = [
-  {id:'gaol',name:'Hexham Old Gaol',lat:54.97005,lng:-2.10395,icon:'⛓️',kind:'investigate',spirit:7,
+  {id:'gaol',name:'Hexham Old Gaol',lat:54.97131,lng:-2.10003,icon:'⛓️',kind:'investigate',spirit:7,
    title:'THE PRISONER',prompt:'Something is wrong at the Old Gaol.',text:'Find out what has escaped.',
    traces:['A broken chain','Deep scratches in the stone','A patch of impossible cold'],
    clues:['The metal is cold. Far too cold. Whatever was wearing this did not leave willingly.','Something dragged itself towards the doorway.','The marks stop where there is nowhere left to go.']},
-  {id:'forum',name:'Forum Cinema',lat:54.96972,lng:-2.10182,icon:'🎬',kind:'puzzle',spirit:8,
+  {id:'forum',name:'Forum Cinema',lat:54.97188,lng:-2.10130,icon:'🎬',kind:'puzzle',spirit:8,
    title:'THE MEMORY',prompt:'🎬 THE FILM HAS STARTED',text:'But nobody bought a ticket.',
    traces:['A figure entering the cinema','The doors closing','An empty seat']},
-  {id:'hall',name:"Queen's Hall",lat:54.97032,lng:-2.10155,icon:'🎭',kind:'multiplayer',spirit:9,
+  {id:'hall',name:"Queen's Hall",lat:54.97060,lng:-2.10260,icon:'🎭',kind:'multiplayer',spirit:9,
    title:'THE AUDIENCE',prompt:'The building remembers everyone who has ever gathered here.',text:'Listen.',
    traces:['Faint applause','A voice behind you','An empty entrance']},
 ];
@@ -108,7 +108,7 @@ function updateProximity(){
   if(e)e.textContent=proximityText(m);
   document.querySelectorAll('[data-location-id]').forEach(x=>{
     const l=locations.find(a=>a.id===x.dataset.locationId);
-    if(l)x.disabled=!state.position||distance(state.position,[l.lat,l.lng])>25;
+    if(l)x.disabled=!state.position||distance(state.position,[l.lat,l.lng])>40;
   });
 }
 function chapterText(){
@@ -147,12 +147,12 @@ function locationCard(l){
   if(l.id==='gaol')status=state.progress.gaol>=3?'Investigated':state.progress.gaol+'/3 traces';
   if(l.id==='forum')status=state.progress.forum?'Memory reconstructed':'Reconstruct the film';
   if(l.id==='hall')status=state.progress.hall?'Audience heard':'Listen at the hall';
-  const near=d!==null&&d<=25;
+  const near=d!==null&&d<=40;
   return `<div class="locationcard ${near?'near':''}"><div class="locicon">${l.icon}</div><div class="locbody"><b>${l.title}</b><span>${l.name} • ${d===null?'GPS required':d+'m'}</span><p>${near?l.prompt:l.text}</p>
   <button class="action ${near?'':'secondary'}" data-location-id="${l.id}" onclick="playLocation('${l.id}')" ${near?'':'disabled'}>${near?status:'Move closer'}</button></div></div>`;
 }
 function playLocation(id){
-  const l=locations.find(x=>x.id===id);if(!l||!state.position||distance(state.position,[l.lat,l.lng])>25){toast('Move closer to the location.');return}
+  const l=locations.find(x=>x.id===id);if(!l||!state.position||distance(state.position,[l.lat,l.lng])>40){toast('Move closer to the location.');return}
   if(id==='gaol')playGaol(l);
   if(id==='forum')playForum(l);
   if(id==='hall')playHall(l);
@@ -189,7 +189,7 @@ function revealMarley(){
 }
 function spawnSpirit(){
   if(!mapInstance)return;
-  const path=[[54.97005,-2.10395],[54.97035,-2.1028],[54.96972,-2.10182],[54.97032,-2.10155],[54.9694,-2.1033]];
+  const path=[[54.97131,-2.10003],[54.97160,-2.10070],[54.97188,-2.10130],[54.97060,-2.10260],[54.96940,-2.10330]];
   let i=0;
   if(spiritTimer)clearInterval(spiritTimer);
   spiritMarker=L.circleMarker(path[0],{radius:11,weight:3}).addTo(mapInstance).bindPopup('👻 Something is moving');
