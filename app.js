@@ -6,10 +6,13 @@ const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPAB
 
 const HEXHAM = [54.9694, -2.1033];
 const locations = [
-  {id:'gaol',name:'Hexham Old Gaol',lat:54.97131,lng:-2.10003,icon:'⛓️',kind:'investigate',spirit:7,
-   title:'THE PRISONER',prompt:'Something is wrong at the Old Gaol.',text:'Find out what has escaped.',
-   traces:['A broken chain','Deep scratches in the stone','A patch of impossible cold'],
-   clues:['The metal is cold. Far too cold. Whatever was wearing this did not leave willingly.','Something dragged itself towards the doorway.','The marks stop where there is nowhere left to go.']},
+  {id:'gaol',name:'Hexham Old Gaol',lat:54.97130,lng:-2.10010,icon:'⛓️',kind:'investigate',spirit:7,
+   title:'THE PRISONER',prompt:'Something is wrong at the Old Gaol.',text:'Search the area. Something is not where it should be.',
+   zones:[
+     {id:'chain',lat:54.97130,lng:-2.10010,title:'A broken chain',clue:'The metal is cold. Far too cold. Whatever was wearing this did not leave willingly.',setup:'Physical prop: short broken chain or convincing replica.'},
+     {id:'scratches',lat:54.97136,lng:-2.10000,title:'Deep scratches in the stone',clue:'Three parallel marks. Something dragged itself towards the doorway.',setup:'Physical prop: scratch/mark effect or discreet clue marker.'},
+     {id:'cold',lat:54.97124,lng:-2.09999,title:'A patch of impossible cold',clue:'The temperature drops. The marks stop where there is nowhere left to go.',setup:'Physical prop: hidden QR/NFC marker or staff-triggered effect.'}
+   ]},
   {id:'forum',name:'Forum Cinema',lat:54.97188,lng:-2.10130,icon:'🎬',kind:'puzzle',spirit:8,
    title:'THE MEMORY',prompt:'🎬 THE FILM HAS STARTED',text:'But nobody bought a ticket.',
    traces:['A figure entering the cinema','The doors closing','An empty seat']},
@@ -144,7 +147,7 @@ function mapTab(){
 function locationCard(l){
   const d=state.position?Math.round(distance(state.position,[l.lat,l.lng])):null;
   let status='Approach the location';
-  if(l.id==='gaol')status=state.progress.gaol>=3?'Investigated':state.progress.gaol+'/3 traces';
+  if(l.id==='gaol')status=state.progress.gaol>=3?'Investigated':state.progress.gaol===0?'Begin investigating':'Continue investigating';
   if(l.id==='forum')status=state.progress.forum?'Memory reconstructed':'Reconstruct the film';
   if(l.id==='hall')status=state.progress.hall?'Audience heard':'Listen at the hall';
   const near=d!==null&&d<=40;
@@ -152,19 +155,25 @@ function locationCard(l){
   <button class="action ${near?'':'secondary'}" data-location-id="${l.id}" onclick="playLocation('${l.id}')" ${near?'':'disabled'}>${near?status:'Move closer'}</button></div></div>`;
 }
 function playLocation(id){
-  const l=locations.find(x=>x.id===id);if(!l||!state.position||distance(state.position,[l.lat,l.lng])>40){toast('Move closer to the location.');return}
+  const l=locations.find(x=>x.id===id);
+  if(!l||!state.position||distance(state.position,[l.lat,l.lng])>40){toast('Move closer to the location.');return}
   if(id==='gaol')playGaol(l);
   if(id==='forum')playForum(l);
   if(id==='hall')playHall(l);
 }
 function playGaol(l){
-  const n=state.progress.gaol;
-  if(n>=3){toast('The traces are gone. Something followed them.');spawnSpirit();return}
-  state.progress.gaol=n+1;addSpirit(l.spirit/3);activity('investigate_trace',{location_id:l.id,trace:n+1});
-  const clue=l.clues[n];
+  const next=l.zones[state.progress.gaol];
+  if(!next){toast('The traces are gone. Something followed them.');spawnSpirit();return}
+  const d=distance(state.position,[next.lat,next.lng]);
+  if(d>18){toast('The disturbance is nearby. Search this part of the Gaol.');return}
+  state.progress.gaol+=1;
+  addSpirit(l.spirit/3);
+  activity('investigate_zone',{location_id:l.id,zone_id:next.id});
   save();render();
-  toast(l.traces[n]+': '+clue);
-  if(state.progress.gaol===3){setTimeout(()=>{toast('⚠️ SPIRIT ACTIVITY');spawnSpirit()},1200)}
+  toast(next.title+': '+next.clue);
+  if(state.progress.gaol===3){
+    setTimeout(()=>{toast('⚠️ SPIRIT ACTIVITY');spawnSpirit()},1200)
+  }
 }
 function playForum(l){
   if(state.progress.gaol<3){toast('You need to understand the Old Gaol first.');return}
