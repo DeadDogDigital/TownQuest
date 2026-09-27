@@ -21,26 +21,28 @@ const locations = [
    traces:['Faint applause','A voice behind you','An empty entrance']},
 ];
 
-const chargingCandidates=[[54.97062,-2.10520],[54.97215,-2.10345],[54.96895,-2.10125],[54.97005,-2.09915],[54.97235,-2.09815],[54.96865,-2.10405],[54.97305,-2.10185],[54.96935,-2.10600]];
-const fezziwig={id:'fezziwig',name:"Fezziwig's Market",lat:54.971421,lng:-2.101304,icon:'🎩'};
-function todayKey(){const d=new Date();return d.getUTCFullYear()+'-'+(d.getUTCMonth()+1)+'-'+d.getUTCDate()}
-function activeChargingZone(){const key=todayKey();let n=0;for(const ch of key)n=(n*31+ch.charCodeAt(0))%chargingCandidates.length;const p=chargingCandidates[n];return {id:'charge-'+key,lat:p[0],lng:p[1]}}
-function ensureEconomy(){if(!Number.isFinite(Number(state.energy)))state.energy=100;if(!Number.isFinite(Number(state.credits)))state.credits=50;state.items=state.items||{energy_tonic:1,spirit_candle:0,ghost_lantern:0,lucky_charm:0}}
-function spendEnergy(amount){ensureEconomy();state.energy=Math.max(0,state.energy-amount);save();if(state.energy<=20)showWorldMessage('❤️ Your energy is fading. Find the energy source.')}
-function earnCredits(amount,reason){ensureEconomy();state.credits+=amount;save();showWorldMessage('🪙 +'+amount+' Credits • '+reason)}
-function chargeEnergy(){ensureEconomy();const z=activeChargingZone();if(!state.position||distance(state.position,[z.lat,z.lng])>45){toast('Move into the energy source.');return}if(state.energy>=100){toast('Your energy is already full.');return}state.energy=100;save();activity('charge_energy',{zone_id:z.id});showDiscovery('ENERGY RESTORED','The strange warmth fills you again.')}
-function buyItem(key){ensureEconomy();const items={energy_tonic:['Energy Tonic',10],spirit_candle:['Spirit Candle',20],lucky_charm:['Lucky Charm',25],ghost_lantern:['Ghost Lantern',40]};const item=items[key];if(!item)return;if(state.credits<item[1]){toast('You need '+item[1]+' Credits.');return}state.credits-=item[1];state.items[key]=(state.items[key]||0)+1;save();activity('shop_purchase',{item:key,cost:item[1]});toast('Added to your journal.');render()}
-function useEnergyTonic(){ensureEconomy();if((state.items.energy_tonic||0)<1){toast('You do not have an Energy Tonic.');return}state.items.energy_tonic--;state.energy=Math.min(100,state.energy+25);save();showWorldMessage('❤️ Energy restored.');render()}
 let mapInstance=null, spiritMarker=null, meMarker=null, locationWatchId=null, spiritTimer=null, worldObjectLayers=[];
 let state=JSON.parse(localStorage.getItem('townquest-v3')||'null')||{
   tab:'home',player:'',playerId:null,started:false,position:null,chapter:'HALLOWEEN',
-  spirit:37,energy:100,credits:50,items:{energy_tonic:1,spirit_candle:0,ghost_lantern:0,lucky_charm:0},found:[],progress:{gaol:0,forum:false,hall:false},marley:false,notificationOptIn:false,connected:false
+  spirit:37,found:[],progress:{gaol:0,forum:false,hall:false},marley:false,notificationOptIn:false,connected:false
 };
 
+const chargingCandidates=[[54.97062,-2.10520],[54.97215,-2.10345],[54.96895,-2.10125],[54.97005,-2.09915],[54.97235,-2.09815],[54.96865,-2.10405],[54.97305,-2.10185],[54.96935,-2.10600]];
+const fezziwig={lat:54.971421,lng:-2.101304};
+function economyInit(){state.energy=Number.isFinite(Number(state.energy))?Number(state.energy):100;state.credits=Number.isFinite(Number(state.credits))?Number(state.credits):50;state.items=state.items||{energy_tonic:1,spirit_candle:0,ghost_lantern:0,lucky_charm:0}}
+function chargingZone(){const d=new Date(),key=d.getUTCFullYear()+'-'+(d.getUTCMonth()+1)+'-'+d.getUTCDate();let n=0;for(const c of key)n=(n*31+c.charCodeAt(0))%chargingCandidates.length;const p=chargingCandidates[n];return {id:key,lat:p[0],lng:p[1]}}
+function economySave(){economyInit();localStorage.setItem('townquest-economy',JSON.stringify({energy:state.energy,credits:state.credits,items:state.items}))}
+function economyLoad(){try{const x=JSON.parse(localStorage.getItem('townquest-economy')||'null');if(x){state.energy=x.energy;state.credits=x.credits;state.items=x.items}}catch(e){}economyInit()}
+function spendEnergy(n){economyInit();state.energy=Math.max(0,state.energy-n);economySave()}
+function earnCredits(n){economyInit();state.credits+=n;economySave();toast('🪙 +'+n+' Credits')}
+function chargeEnergy(){economyInit();const z=chargingZone();if(!state.position||distance(state.position,[z.lat,z.lng])>45){toast('Move into the glowing energy source.');return}state.energy=100;economySave();toast('❤️ Energy restored')}
+function buyItem(k,c){economyInit();if(state.credits<c){toast('You need '+c+' Credits.');return}state.credits-=c;state.items[k]=(state.items[k]||0)+1;economySave();render()}
+function shopItem(k,i,n,c,d){return '<div class="card"><div class="cardhead"><b>'+i+' '+n+'</b><span class="pill">🪙 '+c+'</span></div><p class="muted">'+d+'</p><button class="action" onclick="buyItem(\''+k+'\','+c+')">Buy</button></div>'}
+function shop(){economyInit();return '<div class="panel"><section class="hero"><div class="eyebrow">THE SHAMBLES • EASTER EGG</div><h1>🎩 Fezziwig\'s Market</h1><p>Something useful always seems to turn up.</p></section><div class="gamehud" style="margin-top:14px"><span>🪙 <b>'+state.credits+'</b> Credits</span><span class="muted">Earned by playing</span></div><div class="section">What\'s on the stall?</div>'+shopItem('energy_tonic','🧪','Energy Tonic',10,'Restores 25 Energy.')+shopItem('spirit_candle','🕯️','Spirit Candle',20,'Helps reveal hidden spirits.')+shopItem('lucky_charm','🍀','Lucky Charm',25,'Improves discoveries.')+shopItem('ghost_lantern','🏮','Ghost Lantern',40,'Reveals hidden things.')+'<div class="notice"><strong>Free to play</strong><span>Credits are earned in the game. No real-money purchases are used in this version.</span></div></div>'}
 const app=document.getElementById('app');
-const save=()=>{ensureEconomy();localStorage.setItem('townquest-v3',JSON.stringify(state));updateHeader()};
+const save=()=>{localStorage.setItem('townquest-v3',JSON.stringify(state));updateHeader()};
 const toast=t=>{const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.__toast);window.__toast=setTimeout(()=>e.style.display='none',3500)};
-const updateHeader=()=>{ensureEconomy();const p=document.getElementById('spiritPct'),f=document.getElementById('spiritFill'),e=document.getElementById('energyPct'),ef=document.getElementById('energyFill'),c=document.getElementById('creditsCount');if(p)p.textContent=state.spirit+'%';if(f)f.style.width=state.spirit+'%';if(e)e.textContent=state.energy+'%';if(ef)ef.style.width=state.energy+'%';if(c)c.textContent=state.credits};
+const updateHeader=()=>{economyInit();const p=document.getElementById('spiritPct'),f=document.getElementById('spiritFill'),e=document.getElementById('energyPct'),c=document.getElementById('creditsCount');if(p)p.textContent=state.spirit+'%';if(f)f.style.width=state.spirit+'%';if(e)e.textContent=state.energy+'%';if(c)c.textContent=state.credits};
 const setTab=t=>{state.tab=t;save();render();};
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 
@@ -102,10 +104,11 @@ async function activity(type,metadata={}){
   if(supabase&&state.playerId)await supabase.from('player_activity').insert({player_id:state.playerId,activity_type:type,metadata});
 }
 function startAdventure(){
+  economyInit();
   const input=document.getElementById('nicknameInput'), name=(input?.value||'').trim().replace(/\s+/g,' ');
   if(name.length<2){toast('Choose a nickname with at least 2 characters.');return}
   if(name.length>24){toast('Keep your nickname to 24 characters or fewer.');return}
-  state.player=name;state.playerId=crypto.randomUUID();state.started=true;state.tab='map';state.energy=100;state.credits=50;state.items={energy_tonic:1,spirit_candle:0,ghost_lantern:0,lucky_charm:0};save();
+  state.player=name;state.playerId=crypto.randomUUID();state.started=true;state.tab='map';state.energy=100;state.credits=50;state.items={energy_tonic:1,spirit_candle:0,ghost_lantern:0,lucky_charm:0};economySave();save();
   toast('The town has been waiting for you.');
   render();requestLocation({recenter:true});
 }
@@ -153,7 +156,7 @@ function home(){
   <input id="nicknameInput" maxlength="24" autocomplete="nickname" placeholder="Your nickname" style="width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;font:inherit;margin-top:8px">
   <button class="action" onclick="startAdventure()">Start the adventure</button></div>
   <div class="notice"><strong>🔒 Your identity</strong><span>Your nickname is your game identity. Your exact GPS position is only shown to you.</span></div></div>`;
-  const done=state.marley;
+  economyInit();const done=state.marley;
   return `<div class="panel"><section class="hero"><div class="eyebrow">CHAPTER 1 • HALLOWEEN</div><h1>${c.title}</h1><p>${c.intro}</p><button class="action" onclick="setTab('map')">Enter Hexham</button></section>
   <div class="storybar"><b>${done?'MARLEY FOUND':'Something is moving'}</b><span>${done?'You have discovered the first name in the story.':'Follow the disturbances. The town will reveal the rest.'}</span></div>
   <div class="section">Your investigation</div>
@@ -162,12 +165,11 @@ function home(){
   <div class="missionrow"><span>🎭 Queen's Hall</span><b>${state.progress.hall?'Heard':'Locked'}</b></div>
   <div class="card"><b>👤 ${state.player}</b><div class="muted">Live world: ${state.connected?'connected':'offline cache'}</div></div></div>`;
 }
-function shopItem(key,icon,name,cost,desc){return '<div class="card"><div class="cardhead"><b>'+icon+' '+name+'</b><span class="pill">🪙 '+cost+'</span></div><p class="muted">'+desc+'</p><button class="action" onclick="buyItem(\''+key+'\')">Buy</button></div>'}
-function shop(){ensureEconomy();return '<div class="panel"><section class="hero"><div class="eyebrow">THE SHAMBLES • A LITTLE EASTER EGG</div><h1>🎩 Fezziwig\'s Market</h1><p>Welcome, welcome! Something useful always seems to turn up.</p></section><div class="gamehud" style="margin-top:14px"><span>🪙 <b>'+state.credits+'</b> Credits</span><span class="muted">Earned by playing</span></div><div class="section">What\'s on the stall?</div>'+shopItem('energy_tonic','🧪','Energy Tonic',10,'Restores 25 Energy.')+shopItem('spirit_candle','🕯️','Spirit Candle',20,'Helps reveal hidden spirits.')+shopItem('lucky_charm','🍀','Lucky Charm',25,'Improves your chance of finding something useful.')+shopItem('ghost_lantern','🏮','Ghost Lantern',40,'Reveals things that normally stay hidden.')+'<div class="notice"><strong>🪙 Credits are free to earn.</strong><span>For this version, everything in Fezziwig\'s Market is earned by playing. No real-money purchases are used.</span></div></div>'}
 function mapTab(){
-  const m=nearest();
+  const m=nearest();economyInit();
   return `<div class="game-panel game-screen">
-    <div class="game-topbar"><div class="game-status"><span class="status-dot"></span><span id="proximity">Finding you…</span></div><div class="game-resources"><span>❤️ <b id="energyPct">100%</b></span><span>🪙 <b id="creditsCount">50</b></span></div>
+    <div class="game-topbar">
+      <div class="game-status"><span class="status-dot"></span><span id="proximity">${proximityText(m)}</span></div>
       <button class="game-locate" onclick="requestLocation({recenter:true})" aria-label="Find my location">⌖</button>
     </div>
     <div class="world-shell" id="worldShell">
@@ -177,7 +179,9 @@ function mapTab(){
       <div class="world-whisper" id="worldWhisper">Move through Hexham. Watch for what doesn't belong.</div>
     </div>
     <div class="game-bottom">
-      <button onclick="setTab('bag')" aria-label="Journal">📖</button><div class="game-player">PLAYER</div><button onclick="setTab('shop')" aria-label="Fezziwig's Market">🎩</button>
+      <button onclick="setTab('bag')" aria-label="Journal">📖</button>
+      <div class="game-player">${state.player||'PLAYER'}</div>
+      <button onclick="setTab('shop')" aria-label="Fezziwig's Market">🎩</button>
     </div>
   </div>`;
 }
@@ -192,9 +196,10 @@ function locationCard(l){
   <button class="action ${near?'':'secondary'}" data-location-id="${l.id}" onclick="playLocation('${l.id}')" ${near?'':'disabled'}>${near?status:'Move closer'}</button></div></div>`;
 }
 function playLocation(id){
+  economyInit();
   const l=locations.find(x=>x.id===id);
   if(!l||!state.position||distance(state.position,[l.lat,l.lng])>40){toast('Move closer to the location.');return}
-  if(id==='gaol')playGaol(l);
+  if(state.energy<=0){toast('Your energy is empty. Find the glowing energy source.');return}if(id==='gaol')playGaol(l);
   if(id==='forum')playForum(l);
   if(id==='hall')playHall(l);
 }
@@ -203,8 +208,8 @@ function playGaol(l){
   if(!next){toast('The traces are gone. Something followed them.');spawnSpirit();return}
   const d=distance(state.position,[next.lat,next.lng]);
   if(d>18){showWorldMessage('The disturbance slips away. Keep searching this part of the Gaol.');pulseMap();return}
-  state.progress.gaol+=1;
-  spendEnergy(10); earnCredits(10,'Trace recovered'); addSpirit(l.spirit/3);
+  state.progress.gaol+=1;spendEnergy(10);earnCredits(10);
+  addSpirit(l.spirit/3);
   activity('investigate_zone',{location_id:l.id,zone_id:next.id});
   save();
   showDiscovery(next.title,next.clue);
@@ -222,7 +227,7 @@ function playForum(l){
 function playHall(l){
   if(!state.progress.forum){showWorldMessage('The hall is listening. Finish what you started at the cinema.');return}
   if(state.progress.hall){showWorldMessage('The applause is still there, just beneath the ordinary sounds of the town.');return}
-  state.progress.hall=true;spendEnergy(12);earnCredits(20,'Audience discovered');addSpirit(l.spirit);activity('listen_audience',{location_id:l.id});
+  state.progress.hall=true;spendEnergy(12);earnCredits(20);save();addSpirit(l.spirit);activity('listen_audience',{location_id:l.id});
   showDiscovery('THE AUDIENCE','The applause grows louder. Then the crowd falls silent.');
   vibrate([50,80,50,180]);
   setTimeout(()=>revealMarley(),2200);
@@ -289,7 +294,7 @@ function memoryPick(n){
       return;
     }
     const l=locations.find(x=>x.id==='forum');
-    state.progress.forum=true;spendEnergy(15);earnCredits(20,'Memory solved');addSpirit(l.spirit);activity('solve_memory',{location_id:l.id});
+    state.progress.forum=true;spendEnergy(15);earnCredits(20);save();addSpirit(l.spirit);activity('solve_memory',{location_id:l.id});
     window.__memoryOrder=[];
     showDiscovery('THE EMPTY SEAT','The film continues. Someone is sitting in the empty seat.');
     setTimeout(()=>{showWorldMessage('⚠️ DON’T LET IT SEE YOU');spawnSpirit();renderMapWorld()},1500);
@@ -329,11 +334,15 @@ function updateWorldObjects(){
     const marker=L.marker([l.lat,l.lng],{icon,interactive:false}).addTo(mapInstance);
     worldObjectLayers.push(marker);
   });
-  const shopIcon=L.divIcon({className:'shop-icon',html:'<div class="landmark shop-landmark"><span class="landmark-symbol">🎩</span><small>Fezziwig\'s Market</small></div>',iconSize:[160,42],iconAnchor:[80,21]});
-  const shopMarker=L.marker([fezziwig.lat,fezziwig.lng],{icon:shopIcon,interactive:true}).addTo(mapInstance);shopMarker.on('click',()=>{state.tab='shop';save();render()});worldObjectLayers.push(shopMarker);
-  const charge=activeChargingZone();
-  const chargeIcon=L.divIcon({className:'charge-icon',html:'<div class="charge-zone" aria-label="Energy source"><span>⚡</span></div>',iconSize:[86,86],iconAnchor:[43,43]});
-  const chargeMarker=L.marker([charge.lat,charge.lng],{icon:chargeIcon,interactive:true}).addTo(mapInstance);chargeMarker.on('click',()=>{if(state.position&&distance(state.position,[charge.lat,charge.lng])<=45)chargeEnergy();else showWorldMessage('A strange energy source is nearby. Move towards it.')});worldObjectLayers.push(chargeMarker);
+  const marketIcon=L.divIcon({className:'landmark-icon',html:'<div class="landmark market-landmark"><span class="landmark-symbol">🎩</span><small>Fezziwig\'s Market</small></div>',iconSize:[160,42],iconAnchor:[80,21]});
+  const marketMarker=L.marker([fezziwig.lat,fezziwig.lng],{icon:marketIcon}).addTo(mapInstance);
+  marketMarker.on('click',()=>{state.tab='shop';render()});
+  worldObjectLayers.push(marketMarker);
+  const charge=chargingZone();
+  const chargeIcon=L.divIcon({className:'disturbance-icon',html:'<div class="charge-zone" aria-label="Energy source"><span>⚡</span></div>',iconSize:[74,74],iconAnchor:[37,37]});
+  const chargeMarker=L.marker([charge.lat,charge.lng],{icon:chargeIcon}).addTo(mapInstance);
+  chargeMarker.on('click',()=>chargeEnergy());
+  worldObjectLayers.push(chargeMarker);
   const zone=locations[0].zones[state.progress.gaol];
   if(zone&&!state.progress.forum){
     const jitter=[[0.00012,-0.00010],[-0.00009,0.00013],[0.00006,0.00011]][state.progress.gaol]||[0,0];
@@ -380,7 +389,7 @@ function initMap(){
   setTimeout(()=>{mapInstance.invalidateSize();renderMapWorld();updateWorldHud()},50);
   updateProximity();
 }
-function bag(){ensureEconomy();return '<div class="panel"><section class="hero"><h1>📓 Journal</h1><p>The things you have actually discovered stay with you.</p></section><div class="gamehud" style="margin-top:14px"><span>❤️ <b>'+state.energy+'%</b> Energy</span><span>🪙 <b>'+state.credits+'</b> Credits</span></div><div class="section">Your items</div><div class="inventory"><div class="item"><div class="emoji">🧪</div><b>'+state.items.energy_tonic+'</b><span class="muted">Energy Tonics</span></div><div class="item"><div class="emoji">🕯️</div><b>'+state.items.spirit_candle+'</b><span class="muted">Spirit Candles</span></div><div class="item"><div class="emoji">🏮</div><b>'+state.items.ghost_lantern+'</b><span class="muted">Ghost Lanterns</span></div></div><button class="action secondary" onclick="useEnergyTonic()">Use Energy Tonic</button>';
+function bag(){return `<div class="panel"><section class="hero"><h1>📓 Journal</h1><p>The things you have actually discovered stay with you.</p></section>
 <div class="section">Case file</div><div class="card"><b>⛓️ The Prisoner</b><p class="muted">${state.progress.gaol}/3 traces recovered. Something was imprisoned here that was not a prisoner.</p></div>
 <div class="card"><b>🎬 The Memory</b><p class="muted">${state.progress.forum?'The film continues. Someone is sitting in the empty seat.':'The cinema is waiting.'}</p></div>
 <div class="card"><b>🎭 The Audience</b><p class="muted">${state.progress.hall?'Three places. Three memories. One presence.':'The hall remembers.'}</p></div>
@@ -400,6 +409,7 @@ function destroyMap(){
   meMarker=null;
 }
 function render(){
+  economyLoad();
   // Leaflet is bound to a specific DOM element. Our screens are re-rendered,
   // so an old map instance must be destroyed before replacing #app.
   destroyMap();
@@ -414,7 +424,7 @@ function notifications(){
   if(!('Notification' in window)){toast('Notifications are not supported here.');return}
   Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();toast(r==='granted'?'🔔 Notifications enabled.':'Notifications not enabled.')});
 }
-window.setTab=setTab;window.startAdventure=startAdventure;window.requestLocation=requestLocation;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.useEnergyTonic=useEnergyTonic;
+window.setTab=setTab;window.startAdventure=startAdventure;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.requestLocation=requestLocation;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;
 
 (async function boot(){
   render();
