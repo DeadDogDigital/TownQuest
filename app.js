@@ -52,6 +52,22 @@ function proximityText(m){
 }
 function parse(v){if(typeof v==='string'){try{return JSON.parse(v)}catch{return v}}return v}
 
+function svgIcon(type, label=''){
+  const icons={
+    ghost:'<svg viewBox="0 0 64 64" aria-hidden="true"><path class="ghost-glow" d="M17 43V28c0-12 7-20 15-20s15 8 15 20v15l-5-4-5 6-5-6-5 6-5-6-5 4Z"/><path class="ghost-body" d="M17 43V28c0-12 7-20 15-20s15 8 15 20v15l-5-4-5 6-5-6-5 6-5-6-5 4Z"/><circle class="ghost-eye" cx="26" cy="28" r="3"/><circle class="ghost-eye" cx="38" cy="28" r="3"/><path class="ghost-mouth" d="M28 36c2 2 6 2 8 0"/></svg>',
+    disturbance:'<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="disturb-core" cx="32" cy="32" r="5"/><circle class="disturb-ring ring-a" cx="32" cy="32" r="13"/><circle class="disturb-ring ring-b" cx="32" cy="32" r="21"/><path class="disturb-wisp" d="M32 7c8 7 11 14 7 20-3 5-9 6-10 13-1 5 2 10 8 17"/></svg>',
+    player:'<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="player-ring" cx="32" cy="32" r="23"/><circle class="player-head" cx="32" cy="23" r="7"/><path class="player-body" d="M19 48c1-10 6-15 13-15s12 5 13 15"/></svg>',
+    gaol:'<svg viewBox="0 0 64 64" aria-hidden="true"><rect class="landmark-fill" x="11" y="12" width="42" height="40" rx="5"/><path class="landmark-line" d="M18 20h28M18 28h28M18 36h28M18 44h28M24 12v40M32 12v40M40 12v40"/></svg>',
+    cinema:'<svg viewBox="0 0 64 64" aria-hidden="true"><path class="landmark-line" d="M10 23h44v29H10z"/><path class="landmark-line" d="M10 30h44M18 23l-5-9M29 23l-5-9M40 23l-5-9M51 23l-5-9"/><circle class="landmark-fill" cx="32" cy="41" r="7"/></svg>',
+    hall:'<svg viewBox="0 0 64 64" aria-hidden="true"><path class="landmark-fill" d="M8 50h48L48 18H16L8 50Z"/><path class="landmark-line" d="M18 25v17M26 25v17M34 25v17M42 25v17M12 50h40"/></svg>'
+  };
+  return icons[type]||icons.disturbance;
+}
+function entityIcon(type,label=''){
+  const safe=String(label).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return '<div class="entity-icon entity-'+type+'" role="img" aria-label="'+safe+'">'+svgIcon(type,label)+'</div>';
+}
+
 async function loadWorld({silent=false}={}){
   if(!supabase)return;
   try{
@@ -299,7 +315,8 @@ function updateWorldObjects(){
   if(shell)shell.dataset.spirit=state.spirit<40?'low':state.spirit>70?'high':'mid';
   // Landmarks are deliberately subtle: the map is the world, not a list of pins.
   locations.forEach(l=>{
-    const icon=L.divIcon({className:'landmark-icon',html:`<div class="landmark"><span>${l.icon}</span><small>${l.name.replace('Hexham ','')}</small></div>`,iconSize:[120,34],iconAnchor:[60,17]});
+    const type=l.id==='gaol'?'gaol':l.id==='forum'?'cinema':'hall';
+    const icon=L.divIcon({className:'landmark-icon',html:`<div class="landmark"><span class="landmark-symbol">${svgIcon(type,l.name)}</span><small>${l.name.replace('Hexham ','')}</small></div>`,iconSize:[140,40],iconAnchor:[70,20]});
     const marker=L.marker([l.lat,l.lng],{icon,interactive:false}).addTo(mapInstance);
     worldObjectLayers.push(marker);
   });
@@ -307,7 +324,7 @@ function updateWorldObjects(){
   if(zone&&!state.progress.forum){
     const jitter=[[0.00012,-0.00010],[-0.00009,0.00013],[0.00006,0.00011]][state.progress.gaol]||[0,0];
     const pos=[zone.lat+jitter[0],zone.lng+jitter[1]];
-    const icon=L.divIcon({className:'disturbance-icon',html:'<div class="disturbance"><i></i><span>◌</span></div>',iconSize:[64,64],iconAnchor:[32,32]});
+    const icon=L.divIcon({className:'disturbance-icon',html:entityIcon('disturbance','Supernatural disturbance'),iconSize:[64,64],iconAnchor:[32,32]});
     const marker=L.marker(pos,{icon,interactive:true}).addTo(mapInstance);
     worldObjectLayers.push(marker);
     marker.on('click',()=>showWorldMessage('The disturbance is close. Search the area.'));
@@ -321,7 +338,7 @@ function updatePlayerMarker(){
   if(!mapInstance||!state.position)return;
   if(meMarker)meMarker.setLatLng(state.position);
   else{
-    const icon=L.divIcon({className:'player-icon',html:'<div class="player-dot"><span></span></div>',iconSize:[30,30],iconAnchor:[15,15]});
+    const icon=L.divIcon({className:'player-icon',html:entityIcon('player','Your player position'),iconSize:[38,38],iconAnchor:[19,19]});
     meMarker=L.marker(state.position,{icon,interactive:false}).addTo(mapInstance);
   }
 }
@@ -331,7 +348,7 @@ function spawnSpirit(){
   let i=0;
   if(spiritTimer)clearInterval(spiritTimer);
   if(spiritMarker){try{mapInstance.removeLayer(spiritMarker)}catch(e){}}
-  const icon=L.divIcon({className:'spirit-icon',html:'<div class="spirit-entity">✦</div>',iconSize:[44,44],iconAnchor:[22,22]});
+  const icon=L.divIcon({className:'spirit-icon',html:entityIcon('ghost','Wandering spirit'),iconSize:[56,56],iconAnchor:[28,28]});
   spiritMarker=L.marker(path[0],{icon,interactive:false}).addTo(mapInstance);
   spiritTimer=setInterval(()=>{
     i=(i+1)%path.length;
