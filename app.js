@@ -138,14 +138,22 @@ function home(){
 }
 function mapTab(){
   const m=nearest();
-  return `<div class="panel game-panel">
-    <div class="gamehud"><div><div class="eyebrow">THE TOWN IS ALIVE</div><b id="proximity">${proximityText(m)}</b></div><button class="action mini" onclick="requestLocation({recenter:true})">📍 Find me</button></div>
+  return `<div class="game-panel game-screen">
+    <div class="game-topbar">
+      <div class="game-status"><span class="status-dot"></span><span id="proximity">${proximityText(m)}</span></div>
+      <button class="game-locate" onclick="requestLocation({recenter:true})" aria-label="Find my location">⌖</button>
+    </div>
     <div class="world-shell" id="worldShell">
       <div id="map" class="mapwrap"></div>
       <div class="world-vignette"></div>
       <div class="world-hud" id="worldHud"></div>
+      <div class="world-whisper" id="worldWhisper">Move through Hexham. Watch for what doesn't belong.</div>
     </div>
-    <div class="maphint">Move through Hexham. Watch for movement, disturbances and things that don't belong.</div>
+    <div class="game-bottom">
+      <button onclick="setTab('bag')" aria-label="Journal">📖</button>
+      <div class="game-player">${state.player||'PLAYER'}</div>
+      <button onclick="setTab('events')" aria-label="World state">✦</button>
+    </div>
   </div>`;
 }
 function locationCard(l){
@@ -204,13 +212,14 @@ function vibrate(pattern=[80]){
   if(navigator.vibrate)navigator.vibrate(pattern);
 }
 function showWorldMessage(message){
-  const hud=document.getElementById('worldHud');
+  const hud=document.getElementById('worldHud'), whisper=document.getElementById('worldWhisper');
   if(!hud)return toast(message);
+  if(whisper)whisper.textContent=message;
   hud.innerHTML=`<div class="hud-message"><span>${message}</span></div>`;
   hud.classList.add('show');
   vibrate([35]);
   clearTimeout(window.__hud);
-  window.__hud=setTimeout(()=>hud.classList.remove('show'),5000);
+  window.__hud=setTimeout(()=>{hud.classList.remove('show');updateWorldHud()},5000);
 }
 function showDiscovery(title,text){
   const hud=document.getElementById('worldHud');
@@ -261,14 +270,14 @@ function memoryPick(n){
     setTimeout(()=>{showWorldMessage('⚠️ DON’T LET IT SEE YOU');spawnSpirit();renderMapWorld()},1500);
   }
 }
-function closeWorldHud(){window.__memoryOrder=[];const hud=document.getElementById('worldHud');if(hud)hud.classList.remove('show')}
+function closeWorldHud(){window.__memoryOrder=[];const hud=document.getElementById('worldHud');if(hud){hud.classList.remove('show');updateWorldHud()}}
 function renderMapWorld(){
   if(!mapInstance)return;
   updateWorldObjects();
   updateWorldHud();
 }
 function updateWorldHud(){
-  const hud=document.getElementById('worldHud');
+  const hud=document.getElementById('worldHud'), whisper=document.getElementById('worldWhisper');
   if(!hud)return;
   if(hud.classList.contains('show'))return;
   const m=nearest();
@@ -280,6 +289,7 @@ function updateWorldHud(){
   else if(m&&m.distance<55)message='Something is here. Look around you.';
   else if(m&&m.distance<220)message='Something is nearby.';
   hud.innerHTML=`<div class="hud-message"><span>${message}</span></div>`;
+  if(whisper)whisper.textContent=message;
 }
 function updateWorldObjects(){
   if(!mapInstance)return;
@@ -362,6 +372,7 @@ function render(){
   // Leaflet is bound to a specific DOM element. Our screens are re-rendered,
   // so an old map instance must be destroyed before replacing #app.
   destroyMap();
+  document.body.classList.toggle('in-game',state.tab==='map'&&state.started);
   updateHeader();
   app.innerHTML=state.tab==='home'?home():state.tab==='map'?mapTab():state.tab==='bag'?bag():events();
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
