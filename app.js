@@ -13,7 +13,7 @@ const locations = [
      {id:'scratches',lat:54.97136,lng:-2.10000,title:'Deep scratches in the stone',clue:'Three parallel marks. Something dragged itself towards the doorway.',setup:'Physical prop: scratch/mark effect or discreet clue marker.'},
      {id:'cold',lat:54.97124,lng:-2.09999,title:'A patch of impossible cold',clue:'The temperature drops. The marks stop where there is nowhere left to go.',setup:'Physical prop: hidden QR/NFC marker or staff-triggered effect.'}
    ]},
-  {id:'forum',name:'Forum Cinema',lat:54.97188,lng:-2.10130,icon:'🎬',kind:'puzzle',spirit:8,
+  {id:'forum',name:'Forum Cinema',lat:54.9718539,lng:-2.1010705,icon:'🎬',kind:'puzzle',spirit:8,
    title:'THE MEMORY',prompt:'🎬 THE FILM HAS STARTED',text:'But nobody bought a ticket.',
    traces:['A figure entering the cinema','The doors closing','An empty seat']},
   {id:'hall',name:"Queen's Hall",lat:54.97060,lng:-2.10260,icon:'🎭',kind:'multiplayer',spirit:9,
