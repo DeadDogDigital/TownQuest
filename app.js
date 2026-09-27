@@ -28,7 +28,7 @@ let state=JSON.parse(localStorage.getItem('townquest-v3')||'null')||{
 };
 
 const chargingCandidates=[[54.97062,-2.10520],[54.97215,-2.10345],[54.96895,-2.10125],[54.97005,-2.09915],[54.97235,-2.09815],[54.96865,-2.10405],[54.97305,-2.10185],[54.96935,-2.10600]];
-const fezziwig={lat:54.971421,lng:-2.100834};
+const fezziwig={lat:54.971421,lng:-2.100990};
 function economyInit(){state.energy=Number.isFinite(Number(state.energy))?Number(state.energy):100;state.credits=Number.isFinite(Number(state.credits))?Number(state.credits):50;state.items=state.items||{energy_tonic:1,spirit_candle:0,ghost_lantern:0,lucky_charm:0}}
 function chargingZone(){const d=new Date(),key=d.getUTCFullYear()+'-'+(d.getUTCMonth()+1)+'-'+d.getUTCDate();let n=0;for(const c of key)n=(n*31+c.charCodeAt(0))%chargingCandidates.length;const p=chargingCandidates[n];return {id:key,lat:p[0],lng:p[1]}}
 function economySave(){economyInit();localStorage.setItem('townquest-economy',JSON.stringify({energy:state.energy,credits:state.credits,items:state.items}))}
