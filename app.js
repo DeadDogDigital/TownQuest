@@ -215,6 +215,27 @@ function checkProximityEvents(){
   if(d<20&&stage<3){proximityStage[id]=3;gameEvent('danger',{message:id==='gaol'?'⚠️ Something is here. Look around you.':'Something is watching.'})}
   checkGaolDiscovery();
   checkForumArrival();
+  checkHallArrival();
+}
+function checkHallArrival(){
+  if(!state.position||!state.progress.forum||state.progress.hall)return;
+  const l=locations.find(x=>x.id==='hall');
+  if(!l)return;
+  const d=distance(state.position,[l.lat,l.lng]);
+  if(d<=120){
+    if(!window.__hallNearTriggered){
+      window.__hallNearTriggered=true;
+      gameEvent('nearby',{message:'THE PRESENCE IS CLOSE.'});
+    }
+  }else{
+    window.__hallNearTriggered=false;
+  }
+  if(d<=40&&!window.__hallArrivalTriggered){
+    window.__hallArrivalTriggered=true;
+    showStoryMessage('THE AUDIENCE<br><br>The building remembers.<br><br>You do not need to go inside.','Listen',()=>{
+      playHall(l);
+    });
+  }
 }
 function checkGaolDiscovery(){
   if(!state.position||state.progress.gaol>=3||state.progress.forum)return;
