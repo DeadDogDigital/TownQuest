@@ -166,6 +166,39 @@ function startAdventure(){
   setTimeout(()=>gameEvent('chapter'),350);
   requestLocation({recenter:true});
 }
+const TEST_MODE=new URLSearchParams(location.search).get('test')==='1';
+function testPosition(label,lat,lng){
+  if(!TEST_MODE)return;
+  primeGameAudio();
+  updateLocation({coords:{latitude:lat,longitude:lng,accuracy:5}},true);
+  toast('TEST: '+label);
+}
+function testAt(id){
+  if(id==='gaol1')return testPosition('Old Gaol — broken chain',54.97130,-2.09995);
+  if(id==='gaol2')return testPosition('Old Gaol — scratches',54.97136,-2.10002);
+  if(id==='gaol3')return testPosition('Old Gaol — impossible cold',54.97124,-2.10002);
+  if(id==='forum')return testPosition('Forum Cinema',54.9718539,-2.1010705);
+  if(id==='hall')return testPosition('Queens Hall',54.97205,-2.10180);
+}
+function testReset(){
+  if(!TEST_MODE)return;
+  if(spiritTimer){clearInterval(spiritTimer);spiritTimer=null}
+  if(spiritMarker){try{mapInstance?.removeLayer(spiritMarker)}catch(e){}spiritMarker=null}
+  state.started=true;state.player=state.player||'TESTER';state.playerId=state.playerId||crypto.randomUUID();
+  state.position=null;state.progress={gaol:0,forum:false,hall:false};state.marley=false;state.tab='map';
+  proximityStage={};window.__forumArrivalTriggered=false;window.__hallArrivalTriggered=false;window.__hallNearTriggered=false;
+  save();render();toast('TEST: adventure reset');
+}
+function testEffect(kind){
+  if(!TEST_MODE)return;
+  primeGameAudio();
+  if(kind==='sound'){gameSound('discovery');toast('TEST: sound');return}
+  if(kind==='haptic'){vibrate([80,50,140]);toast(navigator.vibrate?'TEST: haptic sent':'TEST: this browser does not expose vibration')}
+}
+function testPanel(){
+  if(!TEST_MODE)return '';
+  return '<div class="test-panel"><div class="test-title">TEST MODE</div><div class="test-row"><button onclick="testAt(\'gaol1\')">Gaol 1</button><button onclick="testAt(\'gaol2\')">Gaol 2</button><button onclick="testAt(\'gaol3\')">Gaol 3</button></div><div class="test-row"><button onclick="testAt(\'forum\')">Forum</button><button onclick="testAt(\'hall\')">Hall</button><button onclick="testReset()">Reset</button></div><div class="test-row"><button onclick="testEffect(\'sound\')">🔊 Sound</button><button onclick="testEffect(\'haptic\')">📳 Haptic</button></div></div>';
+}
 function setLocationPrompt(mode='ready'){
   const box=document.getElementById('gameLocationPrompt');
   if(!box)return;
@@ -657,7 +690,7 @@ function notifications(){
   if(!('Notification' in window)){toast('Notifications are not supported here.');return}
   Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();toast(r==='granted'?'🔔 Notifications enabled.':'Notifications not enabled.')});
 }
-window.setTab=setTab;window.startAdventure=startAdventure;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.requestLocation=requestLocation;window.focusObjective=focusObjective;window.showLocationHelp=showLocationHelp;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;window.closePuzzle=closePuzzle;
+window.setTab=setTab;window.startAdventure=startAdventure;window.testAt=testAt;window.testReset=testReset;window.testEffect=testEffect;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.requestLocation=requestLocation;window.focusObjective=focusObjective;window.showLocationHelp=showLocationHelp;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;window.closePuzzle=closePuzzle;
 
 (async function boot(){
   render();
