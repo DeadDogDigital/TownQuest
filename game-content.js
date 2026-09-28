@@ -1,6 +1,24 @@
 // Hexham Adventure — location content
 // Game content lives here so new locations can be added without changing engine logic.
 
+export const MISSIONS = {
+  spiritsAwaken: {
+    id: 'spirits_awaken',
+    chapter: 'HALLOWEEN',
+    title: 'The Spirits Awaken',
+    objectives: [
+      { id:'prisoner', type:'investigate', title:'THE PRISONER', location:'gaol', text:'Find out what escaped.', steps:[
+        {id:'chain',type:'proximity',location:'gaol',text:'Find the broken chain.'},
+        {id:'scratches',type:'proximity',location:'gaol',text:'Find the scratches in the stone.'},
+        {id:'cold',type:'proximity',location:'gaol',text:'Find the impossible cold.'}
+      ]},
+      { id:'memory', type:'puzzle', title:'THE MEMORY', location:'forum', text:'Find out what is trapped in the memory.'},
+      { id:'audience', type:'listen', title:'THE AUDIENCE', location:'hall', text:'Listen to what the building remembers.'},
+      { id:'marley', type:'follow', title:'MARLEY', location:null, text:'Follow the spirit.'}
+    ]
+  }
+};
+
 export const locations = [
   {id:'gaol',name:'Hexham Old Gaol',lat:54.97130,lng:-2.099786,icon:'⛓️',kind:'investigate',spirit:7,
    title:'THE PRISONER',prompt:'Something is wrong at the Old Gaol.',text:'Search the area. Something is not where it should be.',
