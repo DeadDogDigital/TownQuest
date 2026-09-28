@@ -1,13 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createGameEngine } from './game-engine.js';
-import { locations } from './game-content.js';
+import { locations, MISSIONS } from './game-content.js';
 
 const SUPABASE_URL = window.SUPABASE_URL || '';
 const SUPABASE_KEY = window.SUPABASE_PUBLISHABLE_KEY || '';
 const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const HEXHAM = [54.9694, -2.1033];
-const gameEngine = createGameEngine();
+const gameEngine = createGameEngine({missions: MISSIONS});
 
 let mapInstance=null, spiritMarker=null, meMarker=null, locationWatchId=null, spiritTimer=null, worldObjectLayers=[];
 let audioContext=null, proximityStage={}, firstLaunch=false;
