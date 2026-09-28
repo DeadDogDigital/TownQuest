@@ -266,7 +266,7 @@ function mapTab(){
       <div class="game-status"><span class="status-dot"></span><span id="proximity">${proximityText(m)}</span></div>
       <button class="game-locate" onclick="requestLocation({recenter:true})" aria-label="Find my location">⌖</button>
     </div>
-    <button class="quest-objective" id="questObjective" onclick="focusObjective">
+    <button class="quest-objective" id="questObjective" onclick="focusObjective()">
       <span class="quest-icon">!</span><span><b id="questTitle">${currentObjective().title}</b><small id="questText">${currentObjective().text}</small></span><span class="quest-arrow">›</span>
     </button>
     <div class="game-location-prompt" id="gameLocationPrompt"><button onclick="requestLocation({recenter:true})">📍 Find my location</button></div>
