@@ -366,17 +366,39 @@ function vibrate(pattern=[80]){
   if(navigator.vibrate)navigator.vibrate(pattern);
 }
 function showWorldMessage(message,options={}){
+  if(options.onDismiss){
+    showStoryMessage(message,options.dismissLabel||'Continue',options.onDismiss);
+    return;
+  }
   const hud=document.getElementById('worldHud'), whisper=document.getElementById('worldWhisper');
   if(!hud)return toast(message);
   if(whisper)whisper.textContent=message;
-  const dismissLabel=options.dismissLabel||'Got it';
-  const dismissAction=options.onDismiss?' onclick="window.__worldDismiss&&window.__worldDismiss()"':' onclick="closeWorldHud()"';
-  if(options.onDismiss)window.__worldDismiss=options.onDismiss;
-  hud.innerHTML=`<div class="hud-message"><span>${message}</span><button class="action" ${dismissAction}>${dismissLabel}</button></div>`;
+  hud.innerHTML=`<div class="hud-message"><span>${message}</span></div>`;
   hud.classList.add('show');
   if(!options.silentEffects){gameSound('whisper');vibrate([35]);}
   clearTimeout(window.__hud);
-  if(!options.onDismiss)window.__hud=setTimeout(()=>{hud.classList.remove('show');updateWorldHud()},5000);
+  window.__hud=setTimeout(()=>{hud.classList.remove('show');updateWorldHud()},5000);
+}
+function showStoryMessage(message,buttonLabel,onDismiss){
+  const existing=document.getElementById('storyModal');
+  if(existing)existing.remove();
+  const modal=document.createElement('div');
+  modal.id='storyModal';
+  modal.className='story-modal';
+  modal.innerHTML=`<div class="story-modal-inner" role="dialog" aria-modal="true">
+    <div class="eyebrow">HEXHAM ADVENTURE</div>
+    <div class="story-modal-text">${message}</div>
+    <button class="action story-modal-button" id="storyModalContinue">${buttonLabel}</button>
+  </div>`;
+  document.body.appendChild(modal);
+  requestAnimationFrame(()=>modal.classList.add('show'));
+  gameSound('whisper');
+  vibrate([35]);
+  document.getElementById('storyModalContinue').onclick=()=>{
+    modal.classList.remove('show');
+    setTimeout(()=>modal.remove(),250);
+    if(typeof onDismiss==='function')onDismiss();
+  };
 }
 function showDiscovery(title,text){
   const hud=document.getElementById('worldHud');
