@@ -9,9 +9,9 @@ const locations = [
   {id:'gaol',name:'Hexham Old Gaol',lat:54.97130,lng:-2.099786,icon:'⛓️',kind:'investigate',spirit:7,
    title:'THE PRISONER',prompt:'Something is wrong at the Old Gaol.',text:'Search the area. Something is not where it should be.',
    zones:[
-     {id:'chain',lat:54.97130,lng:-2.099786,title:'A broken chain',clue:'The metal is cold. Far too cold. Whatever was wearing this did not leave willingly.',setup:'Physical prop: short broken chain or convincing replica.'},
-     {id:'scratches',lat:54.97136,lng:-2.099686,title:'Deep scratches in the stone',clue:'Three parallel marks. Something dragged itself towards the doorway.',setup:'Physical prop: scratch/mark effect or discreet clue marker.'},
-     {id:'cold',lat:54.97124,lng:-2.099676,title:'A patch of impossible cold',clue:'The temperature drops. The marks stop where there is nowhere left to go.',setup:'Physical prop: hidden QR/NFC marker or staff-triggered effect.'}
+     {id:'chain',lat:54.97130,lng:-2.09995,title:'A broken chain',clue:'The metal is cold. Far too cold. Whatever was wearing this did not leave willingly.',setup:'Physical prop: short broken chain or convincing replica.'},
+     {id:'scratches',lat:54.97136,lng:-2.10002,title:'Deep scratches in the stone',clue:'Three parallel marks. Something dragged itself towards the doorway.',setup:'Physical prop: scratch/mark effect or discreet clue marker.'},
+     {id:'cold',lat:54.97124,lng:-2.10002,title:'A patch of impossible cold',clue:'The temperature drops. The marks stop where there is nowhere left to go.',setup:'Physical prop: hidden QR/NFC marker or staff-triggered effect.'}
    ]},
   {id:'forum',name:'Forum Cinema',lat:54.9718539,lng:-2.1008345,icon:'🎬',kind:'puzzle',spirit:8,
    title:'THE MEMORY',prompt:'🎬 THE FILM HAS STARTED',text:'But nobody bought a ticket.',
@@ -464,8 +464,9 @@ function updateWorldObjects(){
   worldObjectLayers.push(chargeMarker);
   const zone=locations[0].zones[state.progress.gaol];
   if(zone&&!state.progress.forum){
-    const jitter=[[0.00012,-0.00010],[-0.00009,0.00013],[0.00006,0.00011]][state.progress.gaol]||[0,0];
-    const pos=[zone.lat+jitter[0],zone.lng+jitter[1]];
+    // Keep every Old Gaol investigation point on the Hallgate/public-facing side.
+    // Do not send players behind the building or onto private property.
+    const pos=[zone.lat,zone.lng];
     const icon=L.divIcon({className:'disturbance-icon',html:entityIcon('disturbance','Supernatural disturbance'),iconSize:[64,64],iconAnchor:[32,32]});
     const marker=L.marker(pos,{icon,interactive:true}).addTo(mapInstance);
     worldObjectLayers.push(marker);
