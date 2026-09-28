@@ -213,6 +213,16 @@ function checkProximityEvents(){
   if(d<200&&stage<1){proximityStage[id]=1;gameEvent('nearby',{message:id==='gaol'?'🕯️ Something is nearby.':'Something strange is close.'})}
   if(d<50&&stage<2){proximityStage[id]=2;gameEvent('close',{message:id==='gaol'?'The air just changed. Keep walking.':'You can feel it now.'})}
   if(d<20&&stage<3){proximityStage[id]=3;gameEvent('danger',{message:id==='gaol'?'⚠️ Something is here. Look around you.':'Something is watching.'})}
+  checkGaolDiscovery();
+}
+function checkGaolDiscovery(){
+  if(!state.position||state.progress.gaol>=3||state.progress.forum)return;
+  const l=locations[0],zone=l.zones[state.progress.gaol];
+  if(!zone)return;
+  const d=distance(state.position,[zone.lat,zone.lng]);
+  if(d<=18){
+    playGaol(l);
+  }
 }
 function updateLocation(p,recenter=false){
   state.position=[p.coords.latitude,p.coords.longitude];save();
