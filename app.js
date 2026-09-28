@@ -370,10 +370,14 @@ function playHall(l){
 function revealMarley(){
   state.marley=true;save();
   gameEvent('reveal');
-  showStoryMessage('MARLEY<br><br>You found him.<br><br>But he is not the one you are supposed to be looking for.','FOLLOW HIM',()=>{
-    spawnSpirit();
+  if(spiritTimer){clearInterval(spiritTimer);spiritTimer=null}
+  if(spiritMarker){spiritMarker.remove();spiritMarker=null}
+  showStoryMessage('MARLEY<br><br>You found him.<br><br>But he is not the one you are supposed to be looking for.','CONTINUE',()=>{
     renderMapWorld();
-    showWorldMessage('Follow the spirit. It is leading you somewhere.');
+    showStoryMessage('THE SPIRITS AWAKEN<br><br>Something has crossed into Hexham. Marley was only the beginning.','END ADVENTURE',()=>{
+      showWorldMessage('The adventure continues when the next disturbance appears.');
+      renderMapWorld();
+    });
   });
 }
 function vibrate(pattern=[80]){
