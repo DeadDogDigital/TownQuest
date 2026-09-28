@@ -379,9 +379,12 @@ function playHall(l){
 }
 function revealMarley(){
   state.marley=true;save();
-  showDiscovery('MARLEY','You found him. But he is not the one you are supposed to be looking for.');
   gameEvent('reveal');
-  setTimeout(()=>{spawnSpirit();renderMapWorld()},1800);
+  showStoryMessage('MARLEY<br><br>You found him.<br><br>But he is not the one you are supposed to be looking for.','FOLLOW HIM',()=>{
+    spawnSpirit();
+    renderMapWorld();
+    showWorldMessage('Follow the spirit. It is leading you somewhere.');
+  });
 }
 function vibrate(pattern=[80]){
   if(navigator.vibrate)navigator.vibrate(pattern);
