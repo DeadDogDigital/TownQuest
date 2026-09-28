@@ -66,7 +66,7 @@ function proximityText(m){
 function currentObjective(){
   if(state.marley)return {location:null,title:'The story continues',text:'Follow the spirit.'};
   if(state.progress.hall)return {location:null,title:'Something has changed',text:'Watch the town.'};
-  if(state.progress.forum)return {location:'hall',title:'FOLLOW THE PRESENCE',text:'Something is waiting where crowds once gathered.'};
+  if(state.progress.forum)return {location:'hall',title:'THE PRESENCE MOVED',text:'Something is waiting nearby.'};
   if(state.progress.gaol>=3)return {location:'forum',title:'NEXT: Forum Cinema',text:'The disturbance moved there.'};
   return {location:'gaol',title:'START HERE: Old Gaol',text:'Find out what escaped.'};
 }
