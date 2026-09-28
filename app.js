@@ -488,19 +488,26 @@ function updatePlayerMarker(){
 function spawnSpirit(){
   if(!mapInstance)return;
   gameEvent('danger');
+  // The spirit should feel like it is travelling through the town, not teleporting
+  // between two attractions. It pauses at each waypoint so a player has time to
+  // notice it, decide to follow, and physically move towards it.
   const path=[[54.97130,-2.100100],[54.97160,-2.100700],[54.97188,-2.101300],[54.97060,-2.102600],[54.96940,-2.10330]];
-  let i=0;
+  let i=0, direction=1;
   if(spiritTimer)clearInterval(spiritTimer);
   if(spiritMarker){try{mapInstance.removeLayer(spiritMarker)}catch(e){}}
   const icon=L.divIcon({className:'spirit-icon',html:entityIcon('ghost','Wandering spirit'),iconSize:[56,56],iconAnchor:[28,28]});
   spiritMarker=L.marker(path[0],{icon,interactive:false}).addTo(mapInstance);
+  // Give the player roughly half a minute to reach or investigate the spirit.
   spiritTimer=setInterval(()=>{
-    i=(i+1)%path.length;
+    if(!spiritMarker)return;
+    i+=direction;
+    if(i>=path.length-1){i=path.length-1;direction=-1}
+    else if(i<=0){i=0;direction=1}
     spiritMarker.setLatLng(path[i]);
     showWorldMessage('👻 Something moved.',{silentEffects:true});
     gameSound('whisper');
     vibrate([25,40,25]);
-  },9000);
+  },30000);
 }
 function initMap(){
   if(mapInstance){setTimeout(()=>mapInstance.invalidateSize(),50);renderMapWorld();return}
