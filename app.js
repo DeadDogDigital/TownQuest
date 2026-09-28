@@ -234,7 +234,7 @@ function checkForumArrival(){
     if(!window.__forumArrivalTriggered){
       window.__forumArrivalTriggered=true;
       gameEvent('close',{message:'🎬 The cinema is reacting to you.'});
-      setTimeout(()=>playForum(l),900);
+      setTimeout(()=>playForum(l),4500);
     }
   }else if(d>70){
     window.__forumArrivalTriggered=false;
