@@ -1,10 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createGameEngine } from './game-engine.js';
 
 const SUPABASE_URL = window.SUPABASE_URL || '';
 const SUPABASE_KEY = window.SUPABASE_PUBLISHABLE_KEY || '';
 const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const HEXHAM = [54.9694, -2.1033];
+const gameEngine = createGameEngine();
 const locations = [
   {id:'gaol',name:'Hexham Old Gaol',lat:54.97130,lng:-2.099786,icon:'⛓️',kind:'investigate',spirit:7,
    title:'THE PRISONER',prompt:'Something is wrong at the Old Gaol.',text:'Search the area. Something is not where it should be.',
@@ -64,11 +66,13 @@ function proximityText(m){
   return Math.round(m.distance)+'m away';
 }
 function currentObjective(){
-  if(state.marley)return {location:null,title:'The story continues',text:'Follow the spirit.'};
-  if(state.progress.hall)return {location:null,title:'Something has changed',text:'Watch the town.'};
-  if(state.progress.forum)return {location:'hall',title:'THE PRESENCE MOVED',text:'Something is waiting nearby.'};
-  if(state.progress.gaol>=3)return {location:'forum',title:'NEXT: Forum Cinema',text:'The disturbance moved there.'};
-  return {location:'gaol',title:'START HERE: Old Gaol',text:'Find out what escaped.'};
+  const o=gameEngine.getCurrentObjective(state);
+  if(!o)return {location:null,title:'The story continues',text:'Follow the spirit.'};
+  return {
+    location:o.location,
+    title:o.id==='gaol'?'START HERE: Old Gaol':o.id==='forum'?'THE MEMORY':o.id==='hall'?'THE PRESENCE MOVED':o.id==='marley'?'FOLLOW THE SPIRIT':o.title,
+    text:o.text
+  };
 }
 function focusObjective(){
   const o=currentObjective(),l=o.location&&locations.find(x=>x.id===o.location);
