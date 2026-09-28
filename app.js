@@ -519,9 +519,7 @@ function updateWorldObjects(){
     const label=isNextHall?'Something is waiting here':l.name.replace('Hexham ','');
     const icon=L.divIcon({
       className:isNextHall?'destination-icon':'landmark-icon',
-      html:isNextHall
-        ? '<div class="destination-beacon"><span class="destination-ring"></span><span class="destination-symbol">'+svgIcon(type,l.name)+'</span><b>FOLLOW THIS</b></div>'
-        : `<div class="landmark"><span class="landmark-symbol">${svgIcon(type,l.name)}</span><small>${l.name.replace('Hexham ','')}</small></div>`,
+      html:`<div class="landmark ${isNextHall?'story-destination':''}"><span class="landmark-symbol">${svgIcon(type,l.name)}</span><small>${isNextHall?'Something is waiting here':l.name.replace('Hexham ','')}</small></div>`,
       iconSize:isNextHall?[170,86]:[140,40],
       iconAnchor:isNextHall?[85,43]:[70,20]
     });
