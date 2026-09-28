@@ -612,7 +612,7 @@ function notifications(){
   if(!('Notification' in window)){toast('Notifications are not supported here.');return}
   Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();toast(r==='granted'?'🔔 Notifications enabled.':'Notifications not enabled.')});
 }
-window.setTab=setTab;window.startAdventure=startAdventure;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.requestLocation=requestLocation;window.focusObjective=focusObjective;window.showLocationHelp=showLocationHelp;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;
+window.setTab=setTab;window.startAdventure=startAdventure;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.requestLocation=requestLocation;window.focusObjective=focusObjective;window.showLocationHelp=showLocationHelp;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;window.closePuzzle=closePuzzle;
 
 (async function boot(){
   render();
