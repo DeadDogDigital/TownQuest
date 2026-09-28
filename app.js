@@ -390,6 +390,9 @@ function updateWorldObjects(){
   if(shell)shell.dataset.spirit=state.spirit<40?'low':state.spirit>70?'high':'mid';
   // Landmarks are deliberately subtle: the map is the world, not a list of pins.
   locations.forEach(l=>{
+    // Reveal the town one discovery at a time so the map feels like an adventure, not a checklist.
+    if(l.id==='forum'&&!state.progress.gaol) return;
+    if(l.id==='hall'&&!state.progress.forum) return;
     const type=l.id==='gaol'?'gaol':l.id==='forum'?'cinema':'hall';
     const icon=L.divIcon({className:'landmark-icon',html:`<div class="landmark"><span class="landmark-symbol">${svgIcon(type,l.name)}</span><small>${l.name.replace('Hexham ','')}</small></div>`,iconSize:[140,40],iconAnchor:[70,20]});
     const marker=L.marker([l.lat,l.lng],{icon,interactive:false}).addTo(mapInstance);
