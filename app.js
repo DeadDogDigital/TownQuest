@@ -163,14 +163,35 @@ function startAdventure(){
   setTimeout(()=>gameEvent('chapter'),350);
   requestLocation({recenter:true});
 }
+function setLocationPrompt(mode='ready'){
+  const box=document.getElementById('gameLocationPrompt');
+  if(!box)return;
+  if(mode==='finding'){
+    box.innerHTML='<button class="location-prompt-button" disabled>📍 Finding your location…</button>';
+  }else if(mode==='denied'){
+    box.innerHTML='<button class="location-prompt-button location-denied" onclick="showLocationHelp()">📍 Location denied — tap for help</button>';
+  }else if(mode==='error'){
+    box.innerHTML='<button class="location-prompt-button" onclick="requestLocation({recenter:true})">📍 Location unavailable — try again</button>';
+  }else{
+    box.innerHTML='<button class="location-prompt-button" onclick="requestLocation({recenter:true})">📍 Find my location</button>';
+  }
+}
+function showLocationHelp(){
+  const hud=document.getElementById('worldHud');
+  if(!hud)return;
+  hud.innerHTML='<div class="location-help"><div class="eyebrow">LOCATION NEEDED</div><h2>Let Hexham Adventure use your location</h2><p>Location access is currently blocked for this site.</p><p><b>On iPhone:</b> use Safari’s website settings for this site and change Location to <b>Allow</b>, then come back here and tap the button again.</p><button class="action" onclick="closeWorldHud();setLocationPrompt(\'ready\')">I’ve changed it — try again</button></div>';
+  hud.classList.add('show');
+}
 function requestLocation({recenter=true}={}){
-  if(!navigator.geolocation){toast('Location services are not available in this browser.');return}
-  const s=document.getElementById('locationStatus');if(s)s.textContent='📍 Finding your location…';
+  if(!navigator.geolocation){toast('Location services are not available in this browser.');setLocationPrompt('error');return}
+  setLocationPrompt('finding');
   navigator.geolocation.getCurrentPosition(p=>{
+    setLocationPrompt('ready');
     updateLocation(p,recenter);startLocationWatch();
   },e=>{
     const msg=e.code===1?'Location was denied. Allow it for this site and try again.':e.code===2?'Your location could not be determined. Try again outdoors.':'Location took too long. Try again.';
-    if(s)s.textContent=msg;toast(msg);
+    setLocationPrompt(e.code===1?'denied':'error');
+    toast(msg);
   },{enableHighAccuracy:true,maximumAge:0,timeout:20000});
 }
 function checkProximityEvents(){
@@ -491,7 +512,7 @@ function notifications(){
   if(!('Notification' in window)){toast('Notifications are not supported here.');return}
   Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();toast(r==='granted'?'🔔 Notifications enabled.':'Notifications not enabled.')});
 }
-window.setTab=setTab;window.startAdventure=startAdventure;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.requestLocation=requestLocation;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;
+window.setTab=setTab;window.startAdventure=startAdventure;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.requestLocation=requestLocation;window.showLocationHelp=showLocationHelp;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;
 
 (async function boot(){
   render();
