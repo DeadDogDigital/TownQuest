@@ -214,6 +214,7 @@ function checkProximityEvents(){
   if(d<50&&stage<2){proximityStage[id]=2;gameEvent('close',{message:id==='gaol'?'The air just changed. Keep walking.':'You can feel it now.'})}
   if(d<20&&stage<3){proximityStage[id]=3;gameEvent('danger',{message:id==='gaol'?'⚠️ Something is here. Look around you.':'Something is watching.'})}
   checkGaolDiscovery();
+  checkForumArrival();
 }
 function checkGaolDiscovery(){
   if(!state.position||state.progress.gaol>=3||state.progress.forum)return;
@@ -222,6 +223,21 @@ function checkGaolDiscovery(){
   const d=distance(state.position,[zone.lat,zone.lng]);
   if(d<=18){
     playGaol(l);
+  }
+}
+function checkForumArrival(){
+  if(!state.position||state.progress.gaol<3||state.progress.forum)return;
+  const l=locations.find(x=>x.id==='forum');
+  if(!l)return;
+  const d=distance(state.position,[l.lat,l.lng]);
+  if(d<=40){
+    if(!window.__forumArrivalTriggered){
+      window.__forumArrivalTriggered=true;
+      gameEvent('close',{message:'🎬 The cinema is reacting to you.'});
+      setTimeout(()=>playForum(l),900);
+    }
+  }else if(d>70){
+    window.__forumArrivalTriggered=false;
   }
 }
 function updateLocation(p,recenter=false){
