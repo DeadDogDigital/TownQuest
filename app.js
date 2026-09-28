@@ -232,6 +232,7 @@ function mapTab(){
       <div class="game-status"><span class="status-dot"></span><span id="proximity">${proximityText(m)}</span></div>
       <button class="game-locate" onclick="requestLocation({recenter:true})" aria-label="Find my location">⌖</button>
     </div>
+    <div class="game-location-prompt" id="gameLocationPrompt"><button onclick="requestLocation({recenter:true})">📍 Find my location</button></div>
     <div class="world-shell" id="worldShell">
       <div id="map" class="mapwrap"></div>
       <div class="world-vignette"></div>
