@@ -22,6 +22,7 @@ const locations = [
 ];
 
 let mapInstance=null, spiritMarker=null, meMarker=null, locationWatchId=null, spiritTimer=null, worldObjectLayers=[];
+let audioContext=null, proximityStage={}, firstLaunch=false;
 let state=JSON.parse(localStorage.getItem('townquest-v3')||'null')||{
   tab:'home',player:'',playerId:null,started:false,position:null,chapter:'HALLOWEEN',
   spirit:37,found:[],progress:{gaol:0,forum:false,hall:false},marley:false,notificationOptIn:false,connected:false
@@ -103,14 +104,64 @@ async function addSpirit(n){
 async function activity(type,metadata={}){
   if(supabase&&state.playerId)await supabase.from('player_activity').insert({player_id:state.playerId,activity_type:type,metadata});
 }
+function primeGameAudio(){
+  try{
+    const C=window.AudioContext||window.webkitAudioContext;
+    if(!C)return;
+    audioContext=audioContext||new C();
+    if(audioContext.state==='suspended')audioContext.resume();
+  }catch(e){}
+}
+function gameSound(kind='whisper'){
+  if(!audioContext)return;
+  try{
+    const now=audioContext.currentTime,o=audioContext.createOscillator(),g=audioContext.createGain();
+    const tones={whisper:[170,.045,.16],nearby:[240,.08,.18],danger:[90,.18,.25],discovery:[440,.12,.2],reveal:[110,.35,.28],wrong:[120,.1,.18],right:[520,.16,.22]};
+    const [freq,dur,vol]=tones[kind]||tones.whisper;
+    o.type=kind==='danger'||kind==='reveal'?'sawtooth':'sine';o.frequency.setValueAtTime(freq,now);o.frequency.exponentialRampToValueAtTime(freq*(kind==='discovery'?1.7:.72),now+dur);
+    g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(vol,now+.01);g.gain.exponentialRampToValueAtTime(.001,now+dur);
+    o.connect(g).connect(audioContext.destination);o.start(now);o.stop(now+dur+.02);
+  }catch(e){}
+}
+function gameEvent(type,payload={}){
+  const shell=document.getElementById('worldShell');
+  const hud=document.getElementById('worldHud');
+  if(!shell)return;
+  const config={
+    nearby:{className:'event-nearby',sound:'nearby',vibe:[30]},
+    close:{className:'event-close',sound:'danger',vibe:[45,35,45]},
+    danger:{className:'event-danger',sound:'danger',vibe:[70,35,140]},
+    discovery:{className:'event-discovery',sound:'discovery',vibe:[60,40,120]},
+    reveal:{className:'event-reveal',sound:'reveal',vibe:[100,60,100,60,260]},
+    wrong:{className:'event-wrong',sound:'wrong',vibe:[90,90]},
+    right:{className:'event-right',sound:'right',vibe:[35,45,90]},
+    chapter:{className:'event-chapter',sound:'reveal',vibe:[100,70,180]}
+  }[type]||{};
+  if(config.className){shell.classList.remove('game-event-active','event-nearby','event-close','event-danger','event-discovery','event-reveal','event-wrong','event-right','event-chapter');void shell.offsetWidth;shell.classList.add('game-event-active',config.className);setTimeout(()=>shell.classList.remove('game-event-active',config.className),1100)}
+  gameSound(config.sound||'whisper');
+  vibrate(config.vibe||[30]);
+  if(type==='chapter'){
+    showCinematic('THE SPIRITS AWAKEN','Something is wrong in Hexham. Find out what escaped.','Begin at the Old Gaol.');
+  }
+  if(type==='nearby'&&payload.message)showWorldMessage(payload.message,{silentEffects:true});
+  if(type==='close'&&payload.message)showWorldMessage(payload.message,{silentEffects:true});
+}
+function showCinematic(title,text,cta=''){
+  const el=document.createElement('div');el.className='cinematic';el.innerHTML='<div class="cinematic-inner"><div class="eyebrow">HEXHAM ADVENTURE</div><h1>'+title+'</h1><p>'+text+'</p>'+(cta?'<div class="cinematic-cta">'+cta+'</div>':'')+'</div>';
+  document.body.appendChild(el);requestAnimationFrame(()=>el.classList.add('show'));setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),500)},3600);
+}
 function startAdventure(){
+  primeGameAudio();
   economyInit();
   const input=document.getElementById('nicknameInput'), name=(input?.value||'').trim().replace(/\s+/g,' ');
   if(name.length<2){toast('Choose a nickname with at least 2 characters.');return}
   if(name.length>24){toast('Keep your nickname to 24 characters or fewer.');return}
   state.player=name;state.playerId=crypto.randomUUID();state.started=true;state.tab='map';state.energy=100;state.credits=50;state.items={energy_tonic:1,spirit_candle:0,ghost_lantern:0,lucky_charm:0};economySave();save();
+  firstLaunch=true;
   toast('The town has been waiting for you.');
-  render();requestLocation({recenter:true});
+  render();
+  setTimeout(()=>gameEvent('chapter'),350);
+  requestLocation({recenter:true});
 }
 function requestLocation({recenter=true}={}){
   if(!navigator.geolocation){toast('Location services are not available in this browser.');return}
@@ -122,6 +173,13 @@ function requestLocation({recenter=true}={}){
     if(s)s.textContent=msg;toast(msg);
   },{enableHighAccuracy:true,maximumAge:0,timeout:20000});
 }
+function checkProximityEvents(){
+  const m=nearest();if(!m)return;
+  const id=m.id,d=m.distance,stage=proximityStage[id]||0;
+  if(d<200&&stage<1){proximityStage[id]=1;gameEvent('nearby',{message:id==='gaol'?'🕯️ Something is nearby.':'Something strange is close.'})}
+  if(d<50&&stage<2){proximityStage[id]=2;gameEvent('close',{message:id==='gaol'?'The air just changed. Keep walking.':'You can feel it now.'})}
+  if(d<20&&stage<3){proximityStage[id]=3;gameEvent('danger',{message:id==='gaol'?'⚠️ Something is here. Look around you.':'Something is watching.'})}
+}
 function updateLocation(p,recenter=false){
   state.position=[p.coords.latitude,p.coords.longitude];save();
   if(mapInstance){
@@ -131,6 +189,8 @@ function updateLocation(p,recenter=false){
   updateProximity();
   updateWorldHud();
   if(mapInstance)updateWorldObjects();
+  checkProximityEvents();
+  if(firstLaunch){firstLaunch=false;setTimeout(()=>showWorldMessage('Find the Old Gaol. Something escaped.',{silentEffects:true}),3200)}
 }
 function startLocationWatch(){
   if(locationWatchId!==null)return;
@@ -235,19 +295,19 @@ function playHall(l){
 function revealMarley(){
   state.marley=true;save();
   showDiscovery('MARLEY','You found him. But he is not the one you are supposed to be looking for.');
-  vibrate([100,60,100,60,300]);
+  gameEvent('reveal');
   setTimeout(()=>{spawnSpirit();renderMapWorld()},1800);
 }
 function vibrate(pattern=[80]){
   if(navigator.vibrate)navigator.vibrate(pattern);
 }
-function showWorldMessage(message){
+function showWorldMessage(message,options={}){
   const hud=document.getElementById('worldHud'), whisper=document.getElementById('worldWhisper');
   if(!hud)return toast(message);
   if(whisper)whisper.textContent=message;
   hud.innerHTML=`<div class="hud-message"><span>${message}</span></div>`;
   hud.classList.add('show');
-  vibrate([35]);
+  if(!options.silentEffects){gameSound('whisper');vibrate([35]);}
   clearTimeout(window.__hud);
   window.__hud=setTimeout(()=>{hud.classList.remove('show');updateWorldHud()},5000);
 }
@@ -256,7 +316,7 @@ function showDiscovery(title,text){
   if(!hud)return toast(title+': '+text);
   hud.innerHTML=`<div class="discovery"><div class="eyebrow">DISCOVERY</div><h2>${title}</h2><p>${text}</p></div>`;
   hud.classList.add('show');
-  vibrate([70,40,120]);
+  gameEvent('discovery');
   clearTimeout(window.__hud);
   window.__hud=setTimeout(()=>hud.classList.remove('show'),6500);
 }
@@ -290,12 +350,13 @@ function memoryPick(n){
   if(order.length===3){
     if(order.join('')!=='123'){
       window.__memoryOrder=[];
-      setTimeout(()=>{if(out)out.textContent='No. Watch the memory again.';vibrate([100,100])},300);
+      setTimeout(()=>{if(out)out.textContent='No. Watch the memory again.';gameEvent('wrong')},300);
       return;
     }
     const l=locations.find(x=>x.id==='forum');
     state.progress.forum=true;spendEnergy(15);earnCredits(20);save();addSpirit(l.spirit);activity('solve_memory',{location_id:l.id});
     window.__memoryOrder=[];
+    gameEvent('right');
     showDiscovery('THE EMPTY SEAT','The film continues. Someone is sitting in the empty seat.');
     setTimeout(()=>{showWorldMessage('⚠️ DON’T LET IT SEE YOU');spawnSpirit();renderMapWorld()},1500);
   }
@@ -367,6 +428,7 @@ function updatePlayerMarker(){
 }
 function spawnSpirit(){
   if(!mapInstance)return;
+  gameEvent('danger');
   const path=[[54.97130,-2.100100],[54.97160,-2.100700],[54.97188,-2.101300],[54.97060,-2.102600],[54.96940,-2.10330]];
   let i=0;
   if(spiritTimer)clearInterval(spiritTimer);
@@ -376,7 +438,8 @@ function spawnSpirit(){
   spiritTimer=setInterval(()=>{
     i=(i+1)%path.length;
     spiritMarker.setLatLng(path[i]);
-    showWorldMessage('👻 Something moved.');
+    showWorldMessage('👻 Something moved.',{silentEffects:true});
+    gameSound('whisper');
     vibrate([25,40,25]);
   },9000);
 }
