@@ -1,26 +1,13 @@
 // Hexham Adventure — content-driven game engine
 // Pure game logic: no DOM, Leaflet or Supabase dependencies.
 
-export const MISSIONS = {
-  spiritsAwaken: {
-    id: 'spirits_awaken',
-    chapter: 'HALLOWEEN',
-    title: 'The Spirits Awaken',
-    objectives: [
-      { id: 'gaol', type: 'investigate', title: 'The Prisoner', location: 'gaol', text: 'Find out what escaped.' },
-      { id: 'forum', type: 'puzzle', title: 'The Memory', location: 'forum', text: 'Find out what is trapped in the memory.' },
-      { id: 'hall', type: 'listen', title: 'The Audience', location: 'hall', text: 'Listen to what the building remembers.' },
-      { id: 'marley', type: 'follow', title: 'Marley', location: null, text: 'Follow the spirit.' }
-    ]
-  }
-};
-
-export function createGameEngine({missions = MISSIONS} = {}) {
+ export function createGameEngine({missions = MISSIONS} = {}) {
   const listeners = new Set();
+  const content = missions || {};
   let currentMissionId = 'spiritsAwaken';
 
   function mission(){
-    return missions[currentMissionId] || Object.values(missions)[0];
+    return content[currentMissionId] || Object.values(content)[0];
   }
 
   function progressFor(state){
