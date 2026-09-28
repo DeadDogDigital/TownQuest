@@ -63,6 +63,19 @@ function proximityText(m){
   if(m.distance<200)return '🕯️ Something is nearby';
   return Math.round(m.distance)+'m away';
 }
+function currentObjective(){
+  if(state.marley)return {location:null,title:'The story continues',text:'Follow the spirit.'};
+  if(state.progress.hall)return {location:null,title:'Something has changed',text:'Watch the town.'};
+  if(state.progress.forum)return {location:'hall',title:"NEXT: Queen's Hall",text:'Go there and listen.'};
+  if(state.progress.gaol>=3)return {location:'forum',title:'NEXT: Forum Cinema',text:'The disturbance moved there.'};
+  return {location:'gaol',title:'START HERE: Old Gaol',text:'Find out what escaped.'};
+}
+function focusObjective(){
+  const o=currentObjective(),l=o.location&&locations.find(x=>x.id===o.location);
+  if(!l||!mapInstance)return;
+  mapInstance.setView([l.lat,l.lng],17);
+  showWorldMessage(o.title+' — '+o.text,{silentEffects:true});
+}
 function parse(v){if(typeof v==='string'){try{return JSON.parse(v)}catch{return v}}return v}
 
 function svgIcon(type, label=''){
@@ -253,6 +266,9 @@ function mapTab(){
       <div class="game-status"><span class="status-dot"></span><span id="proximity">${proximityText(m)}</span></div>
       <button class="game-locate" onclick="requestLocation({recenter:true})" aria-label="Find my location">⌖</button>
     </div>
+    <button class="quest-objective" id="questObjective" onclick="focusObjective">
+      <span class="quest-icon">!</span><span><b id="questTitle">${currentObjective().title}</b><small id="questText">${currentObjective().text}</small></span><span class="quest-arrow">›</span>
+    </button>
     <div class="game-location-prompt" id="gameLocationPrompt"><button onclick="requestLocation({recenter:true})">📍 Find my location</button></div>
     <div class="world-shell" id="worldShell">
       <div id="map" class="mapwrap"></div>
@@ -389,8 +405,15 @@ function renderMapWorld(){
   updateWorldObjects();
   updateWorldHud();
 }
+function updateQuestObjective(){
+  const o=currentObjective(),title=document.getElementById('questTitle'),text=document.getElementById('questText'),button=document.getElementById('questObjective');
+  if(title)title.textContent=o.title;
+  if(text)text.textContent=o.text;
+  if(button)button.style.display=o.location?'flex':'none';
+}
 function updateWorldHud(){
   const hud=document.getElementById('worldHud'), whisper=document.getElementById('worldWhisper');
+  updateQuestObjective();
   if(!hud)return;
   if(hud.classList.contains('show'))return;
   const m=nearest();
@@ -512,7 +535,7 @@ function notifications(){
   if(!('Notification' in window)){toast('Notifications are not supported here.');return}
   Notification.requestPermission().then(r=>{state.notificationOptIn=r==='granted';save();toast(r==='granted'?'🔔 Notifications enabled.':'Notifications not enabled.')});
 }
-window.setTab=setTab;window.startAdventure=startAdventure;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.requestLocation=requestLocation;window.showLocationHelp=showLocationHelp;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;
+window.setTab=setTab;window.startAdventure=startAdventure;window.chargeEnergy=chargeEnergy;window.buyItem=buyItem;window.requestLocation=requestLocation;window.focusObjective=focusObjective;window.showLocationHelp=showLocationHelp;window.playLocation=playLocation;window.notifications=notifications;window.memoryPick=memoryPick;window.closeWorldHud=closeWorldHud;
 
 (async function boot(){
   render();
