@@ -66,7 +66,7 @@ function proximityText(m){
 function currentObjective(){
   if(state.marley)return {location:null,title:'The story continues',text:'Follow the spirit.'};
   if(state.progress.hall)return {location:null,title:'Something has changed',text:'Watch the town.'};
-  if(state.progress.forum)return {location:'hall',title:"NEXT: Queen's Hall",text:'Go there and listen.'};
+  if(state.progress.forum)return {location:'hall',title:'FOLLOW THE PRESENCE',text:'Something is waiting where crowds once gathered.'};
   if(state.progress.gaol>=3)return {location:'forum',title:'NEXT: Forum Cinema',text:'The disturbance moved there.'};
   return {location:'gaol',title:'START HERE: Old Gaol',text:'Find out what escaped.'};
 }
@@ -515,9 +515,31 @@ function updateWorldObjects(){
     if(l.id==='forum'&&!state.progress.gaol) return;
     if(l.id==='hall'&&!state.progress.forum) return;
     const type=l.id==='gaol'?'gaol':l.id==='forum'?'cinema':'hall';
-    const icon=L.divIcon({className:'landmark-icon',html:`<div class="landmark"><span class="landmark-symbol">${svgIcon(type,l.name)}</span><small>${l.name.replace('Hexham ','')}</small></div>`,iconSize:[140,40],iconAnchor:[70,20]});
+    const isNextHall=l.id==='hall'&&state.progress.forum&&!state.progress.hall;
+    const label=isNextHall?'Something is waiting here':l.name.replace('Hexham ','');
+    const icon=L.divIcon({
+      className:isNextHall?'destination-icon':'landmark-icon',
+      html:isNextHall
+        ? '<div class="destination-beacon"><span class="destination-ring"></span><span class="destination-symbol">'+svgIcon(type,l.name)+'</span><b>FOLLOW THIS</b></div>'
+        : `<div class="landmark"><span class="landmark-symbol">${svgIcon(type,l.name)}</span><small>${l.name.replace('Hexham ','')}</small></div>`,
+      iconSize:isNextHall?[170,86]:[140,40],
+      iconAnchor:isNextHall?[85,43]:[70,20]
+    });
     const marker=L.marker([l.lat,l.lng],{icon,interactive:false}).addTo(mapInstance);
     worldObjectLayers.push(marker);
+
+    // Once the cinema is solved, physically connect the player to the next story destination.
+    // This is a game direction cue, not a normal road/navigation route.
+    if(isNextHall&&state.position){
+      const route=L.polyline([state.position,[l.lat,l.lng]],{
+        color:'#d6a83d',
+        weight:3,
+        opacity:.72,
+        dashArray:'5 9',
+        interactive:false
+      }).addTo(mapInstance);
+      worldObjectLayers.push(route);
+    }
   });
   const marketIcon=L.divIcon({className:'landmark-icon',html:'<div class="landmark market-landmark"><span class="landmark-symbol">🎩</span><small>Fezziwig\'s Market</small></div>',iconSize:[160,42],iconAnchor:[80,21]});
   const marketMarker=L.marker([fezziwig.lat,fezziwig.lng],{icon:marketIcon}).addTo(mapInstance);
