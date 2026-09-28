@@ -234,7 +234,7 @@ function checkForumArrival(){
     if(!window.__forumArrivalTriggered){
       window.__forumArrivalTriggered=true;
       gameEvent('close',{message:'🎬 The cinema is reacting to you.'});
-      setTimeout(()=>playForum(l),4500);
+      showWorldMessage('🎬 The cinema is reacting to you.',{dismissLabel:'Continue',onDismiss:()=>playForum(l)});
     }
   }else if(d>70){
     window.__forumArrivalTriggered=false;
@@ -369,11 +369,14 @@ function showWorldMessage(message,options={}){
   const hud=document.getElementById('worldHud'), whisper=document.getElementById('worldWhisper');
   if(!hud)return toast(message);
   if(whisper)whisper.textContent=message;
-  hud.innerHTML=`<div class="hud-message"><span>${message}</span></div>`;
+  const dismissLabel=options.dismissLabel||'Got it';
+  const dismissAction=options.onDismiss?' onclick="window.__worldDismiss&&window.__worldDismiss()"':' onclick="closeWorldHud()"';
+  if(options.onDismiss)window.__worldDismiss=options.onDismiss;
+  hud.innerHTML=`<div class="hud-message"><span>${message}</span><button class="action" ${dismissAction}>${dismissLabel}</button></div>`;
   hud.classList.add('show');
   if(!options.silentEffects){gameSound('whisper');vibrate([35]);}
   clearTimeout(window.__hud);
-  window.__hud=setTimeout(()=>{hud.classList.remove('show');updateWorldHud()},5000);
+  if(!options.onDismiss)window.__hud=setTimeout(()=>{hud.classList.remove('show');updateWorldHud()},5000);
 }
 function showDiscovery(title,text){
   const hud=document.getElementById('worldHud');
