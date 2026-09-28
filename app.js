@@ -415,18 +415,36 @@ function pulseMap(){
   shell.classList.remove('pulse-now');void shell.offsetWidth;shell.classList.add('pulse-now');
 }
 function openMemoryPuzzle(){
-  const hud=document.getElementById('worldHud');
-  if(!hud)return;
-  hud.innerHTML=`<div class="puzzle"><div class="eyebrow">THE MEMORY</div><h2>Something is wrong with the film.</h2><p>Three moments. One sequence. Tap them in the order they happened.</p>
+  const existing=document.getElementById('puzzleModal');
+  if(existing)existing.remove();
+  const modal=document.createElement('div');
+  modal.id='puzzleModal';
+  modal.className='story-modal puzzle-modal';
+  modal.innerHTML=`<div class="story-modal-inner puzzle-inner" role="dialog" aria-modal="true">
+    <div class="eyebrow">THE MEMORY</div>
+    <h2>Something is wrong with the film.</h2>
+    <p>Three moments. One sequence. Tap them in the order they happened.</p>
     <div class="film-options">
       <button data-order="1" onclick="memoryPick(1)">🎞️ <span>A figure enters</span></button>
       <button data-order="2" onclick="memoryPick(2)">🚪 <span>The doors close</span></button>
       <button data-order="3" onclick="memoryPick(3)">💺 <span>An empty seat</span></button>
     </div>
     <div id="memoryOrder" class="memory-order">Your sequence will appear here.</div>
-    <button class="action secondary" onclick="closeWorldHud()">Back to the world</button>
+    <button class="action secondary" onclick="closePuzzle()">Back to the world</button>
   </div>`;
-  hud.classList.add('show');
+  document.body.appendChild(modal);
+  requestAnimationFrame(()=>modal.classList.add('show'));
+  window.__memoryOrder=[];
+  gameSound('whisper');
+  vibrate([35]);
+}
+function closePuzzle(){
+  window.__memoryOrder=[];
+  const modal=document.getElementById('puzzleModal');
+  if(modal){
+    modal.classList.remove('show');
+    setTimeout(()=>modal.remove(),250);
+  }
 }
 function memoryPick(n){
   const hud=document.getElementById('worldHud');
