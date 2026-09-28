@@ -464,8 +464,15 @@ function memoryPick(n){
     state.progress.forum=true;spendEnergy(15);earnCredits(20);save();addSpirit(l.spirit);activity('solve_memory',{location_id:l.id});
     window.__memoryOrder=[];
     gameEvent('right');
-    showDiscovery('THE EMPTY SEAT','The film continues. Someone is sitting in the empty seat.');
-    setTimeout(()=>{showWorldMessage('⚠️ DON’T LET IT SEE YOU');spawnSpirit();renderMapWorld()},1500);
+    closePuzzle();
+    setTimeout(()=>{
+      showStoryMessage('💺 THE EMPTY SEAT<br><br>The film continues. Someone is sitting in the empty seat.','Continue',()=>{
+        showStoryMessage('⚠️ DON’T LET IT SEE YOU','I’m following it',()=>{
+          spawnSpirit();
+          renderMapWorld();
+        });
+      });
+    },300);
   }
 }
 function closeWorldHud(){window.__memoryOrder=[];const hud=document.getElementById('worldHud');if(hud){hud.classList.remove('show');updateWorldHud()}}
