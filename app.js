@@ -346,6 +346,7 @@ function mapTab(){
       <div class="world-hud" id="worldHud"></div>
       <div class="world-whisper" id="worldWhisper">Move through Hexham. Watch for what doesn't belong.</div>
     </div>
+    ${testPanel()}
     <div class="game-bottom">
       <button onclick="setTab('bag')" aria-label="Journal">📖</button>
       <div class="game-player">${state.player||'PLAYER'}</div>
