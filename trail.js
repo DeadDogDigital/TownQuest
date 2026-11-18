@@ -88,7 +88,11 @@ function setupPuzzle(s){
  }else if(p.kind==='order'){
   const nums=[3,1,4,2];let n=1;nums.forEach(v=>{const b=tile('★ '+v,'Star number '+v);b.addEventListener('click',()=>{if(b.disabled)return;if(v===n){b.disabled=true;b.classList.add('done');n++;update(n-1,4);say('That’s right. Keep going…');if(n===5)finish('The stars are in their proper order.')}else{n=1;update(0,4);board.querySelectorAll('.puzzle-tile').forEach(x=>{x.disabled=false;x.classList.remove('done')});say('Not quite. Start with the smallest number.')}})});
  }else{
-  const options=['🎄','🎁','🎄','⭐'];options.forEach((v,i)=>{const b=tile(v,'Pattern choice '+(i+1));b.addEventListener('click',()=>{if(i===1){b.classList.add('done');finish('The pattern is complete.')}else say('Look at the repeating pattern: tree, present, tree…')})});
+  const sequence=document.createElement('div');sequence.className='pattern-sequence';sequence.setAttribute('aria-label','Christmas tree, present, Christmas tree, present, Christmas tree, missing item');sequence.style.display='flex';sequence.style.justifyContent='center';sequence.style.alignItems='center';sequence.style.gap='8px';sequence.style.flexWrap='wrap';sequence.style.margin='8px 0 18px';
+  ['🎄','🎁','🎄','🎁','🎄','❓'].forEach((v,i)=>{const item=document.createElement('span');item.textContent=v;item.style.fontSize='30px';item.style.padding='8px';item.style.minWidth='42px';item.style.textAlign='center';item.style.borderRadius='10px';item.style.background='rgba(255,255,255,.08)';if(i===5)item.style.border='2px dashed currentColor';sequence.appendChild(item)});
+  board.appendChild(sequence);
+  const prompt=document.createElement('p');prompt.textContent='What comes next?';prompt.style.textAlign='center';prompt.style.fontWeight='600';board.appendChild(prompt);
+  const options=['🎄','🎁','⭐'];options.forEach(v=>{const b=tile(v,'Choose '+(v==='🎁'?'a present':v==='🎄'?'a Christmas tree':'a star'));b.addEventListener('click',()=>{if(v==='🎁'){b.classList.add('done');finish('The pattern is complete. Well spotted!')}else{say('Look at the pattern: tree, present, tree, present, tree… What should follow?')}})});
  }
 }
 function renderHome(){
