@@ -90,11 +90,46 @@ body{position:relative;isolation:isolate;background:radial-gradient(ellipse at 5
 .btn{transition:transform .2s,box-shadow .2s}.btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px #8f2f2b35}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}.snowflake{display:none}}
 
+
+/* Storybook illustrations and small interactive discoveries */
+.story-illustration{margin:12px auto 18px;max-width:340px;height:170px;display:grid;place-items:center;position:relative}
+.story-illustration svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 10px 14px #102c2220)}
+.story-illustration .float{transform-origin:center;animation:artFloat 4s ease-in-out infinite}
+.story-illustration .glow{transform-origin:center;animation:artGlow 3s ease-in-out infinite alternate}
+@keyframes artFloat{0%,100%{transform:translateY(2px)}50%{transform:translateY(-7px)}}
+@keyframes artGlow{from{opacity:.35;transform:scale(.92)}to{opacity:.85;transform:scale(1.08)}}
+.hero .hero-copy{max-width:470px;margin:0 auto;color:#f4ecdc;line-height:1.5;font-size:14px}
+.paper-note{font-size:13px}
+.story-card{padding:19px}
+.story-card p{font-size:14px;line-height:1.55}
+.story-card .story-long{display:none}
+.puzzle-card{margin-top:14px;padding:18px;background:#fffaf0;border:1px solid var(--gold);box-shadow:var(--shadow)}
+.puzzle-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.puzzle-badge{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#102c22;color:#e2c987;font-size:22px;flex:none}
+.puzzle-card h3{font:500 20px 'Playfair Display',Georgia,serif;color:var(--forest);margin:0}
+.puzzle-card p{font:13px/1.5 Arial,sans-serif;color:#68675f;margin:4px 0 12px}
+.puzzle-board{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.puzzle-tile{min-width:62px;min-height:62px;border:1px solid #c9a45b;background:#f3ead8;color:#193d2e;border-radius:5px;font-size:24px;cursor:pointer;transition:transform .2s,background .2s,box-shadow .2s}
+.puzzle-tile:hover{transform:translateY(-3px);box-shadow:0 5px 12px #102c2220}
+.puzzle-tile.selected,.puzzle-tile.done{background:#193d2e;color:#fffaf0}
+.puzzle-feedback{min-height:22px;text-align:center;font:13px/1.5 Arial,sans-serif;color:#8f2f2b}
+.puzzle-progress{height:5px;background:#e8dfcf;border-radius:9px;overflow:hidden;margin:12px 0}
+.puzzle-progress span{display:block;height:100%;width:0;background:#c9a45b;transition:width .3s}
+.puzzle-complete{padding:11px;background:#e9efdf;border:1px solid #b8c9a4;color:#29432b;text-align:center;font:13px/1.5 Arial,sans-serif}
+.puzzle-reset{display:block;margin:10px auto 0;background:none;border:0;color:#77776e;text-decoration:underline;font-size:12px;cursor:pointer}
+.collectible-row{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+.collectible{border:1px solid #c9a45b;background:#f5ecd9;color:#193d2e;padding:7px 10px;font:12px Oswald,sans-serif;letter-spacing:.04em}
+.collectible.locked{opacity:.45;filter:grayscale(1)}
+.home-illustration{margin:10px auto 0;max-width:330px;height:145px}
+.home-illustration svg{width:100%;height:100%}
+@media(max-width:420px){.story-illustration{height:145px}.puzzle-tile{min-width:55px;min-height:55px}}
+@media(prefers-reduced-motion:reduce){.story-illustration .float,.story-illustration .glow{animation:none}}
+
 </style>
 </head>
 <body>
 <div class="atmosphere" id="atmosphere" aria-hidden="true"></div>
 <header class="masthead"><div class="brandline">Hexham Christmas · 2026</div><div class="brandname">A <span>Christmas Carol</span> in Hexham</div></header>
-<main id="app"><section class="hero"><div class="lantern">✦</div><div class="eyebrow">A Dickensian Christmas Window Trail</div><h1>The Lost Spirit <span>of Christmas</span></h1><div class="rule"></div><p>The three Christmas Spirits have lost the things that make Christmas magical. With help from the people of Hexham, can they find them before Christmas morning?</p></section><div class="paper-note"><strong>The paper trail leads the way.</strong> Find each participating window, complete its little challenge on your printed trail sheet, then scan its QR code to discover an extra moment from the story. You can start anywhere. No phone is needed to complete the paper trail.</div><div id="content"></div><footer class="footer"><b>HEXHAM CHRISTMAS · A CHRISTMAS CAROL</b><br>Made with Christmas spirit in Hexham.</footer></main>
+<main id="app"><section class="hero"><div class="lantern">✦</div><div class="eyebrow">A Dickensian Christmas Window Trail</div><h1>The Lost Spirit <span>of Christmas</span></h1><div class="rule"></div><p class="hero-copy">A little mystery is unfolding in Hexham. Follow the spirits, explore the windows and help Christmas find its magic.</p></section><div class="paper-note"><strong>The paper trail leads the way.</strong> Find each participating window, complete its little challenge on your printed trail sheet, then scan its QR code to discover an extra moment from the story. You can start anywhere. No phone is needed to complete the paper trail.</div><div id="content"></div><footer class="footer"><b>HEXHAM CHRISTMAS · A CHRISTMAS CAROL</b><br>Made with Christmas spirit in Hexham.</footer></main>
 <script type="module" src="/trail.js"></script>
 </body></html>
