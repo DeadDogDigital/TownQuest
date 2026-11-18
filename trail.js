@@ -1,7 +1,7 @@
 import {stops,themes} from './trail-content.js';
 const root=document.getElementById('content');
 const path=decodeURIComponent(location.pathname);
-const match=path.match(/\\/trail\\/(\\d{1,2})\\/?$/);
+const match=path.match(/\/trail\/(\d{1,2})\/?$/);
 const stop=match?stops.find(s=>s.id===Number(match[1])):null;
 const pad=n=>String(n).padStart(2,'0');
 function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
