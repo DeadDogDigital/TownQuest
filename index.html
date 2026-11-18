@@ -49,9 +49,51 @@ h1,h2,h3,p{margin-top:0}.hero h1{font-family:Oswald,sans-serif;text-transform:up
 .backlink{display:inline-block;text-decoration:none;color:var(--red);font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.1em;font-size:12px;margin:0 0 13px}
 @media(min-width:620px){main{padding:26px 22px 56px}.hero{padding:42px 34px}.story-card{padding:29px}.theme-head{padding:16px 19px}.stop-list{padding:6px 19px 13px}}
 @media(prefers-reduced-motion:no-preference){.hero .lantern{animation:glow 3s ease-in-out infinite alternate}@keyframes glow{from{opacity:.72;transform:translateY(1px)}to{opacity:1;transform:translateY(-2px)}}}
+
+/* Living Christmas atmosphere */
+body{position:relative;isolation:isolate;background:radial-gradient(ellipse at 50% 0%,#fffaf0 0%,#f7f1e5 58%,#eee4d2 100%)}
+.masthead,main{position:relative;z-index:2}
+.atmosphere{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+.snowflake{position:absolute;top:-24px;left:var(--x);width:var(--size);height:var(--size);border-radius:50%;background:#fff;opacity:var(--opacity);filter:drop-shadow(0 0 4px #fff);animation:snowfall var(--duration) linear var(--delay) infinite}
+@keyframes snowfall{0%{transform:translate3d(0,-5vh,0) rotate(0);opacity:0}10%{opacity:var(--opacity)}90%{opacity:var(--opacity)}100%{transform:translate3d(var(--drift),110vh,0) rotate(240deg);opacity:0}}
+.masthead{box-shadow:0 5px 22px #102c221c}
+.masthead:before,.masthead:after{animation:twinkle 2.8s ease-in-out infinite alternate}
+.masthead:after{animation-delay:1.1s}
+@keyframes twinkle{from{opacity:.35;transform:scale(.8) rotate(-12deg)}to{opacity:1;transform:scale(1.25) rotate(12deg)}}
+.hero{isolation:isolate;background:linear-gradient(145deg,#0c261d,#1b4934 60%,#102c22);background-size:160% 160%;animation:heroBreath 12s ease-in-out infinite alternate}
+.hero:after{content:"";position:absolute;inset:-45%;z-index:-1;background:radial-gradient(circle at 50% 50%,#e2c98718 0 2%,transparent 35%);animation:slowGlow 9s ease-in-out infinite alternate}
+@keyframes heroBreath{from{background-position:0% 50%}to{background-position:100% 50%}}
+@keyframes slowGlow{from{transform:translate(-8%,-4%) scale(.8);opacity:.4}to{transform:translate(8%,5%) scale(1.15);opacity:1}}
+.hero .lantern{display:inline-grid;place-items:center;width:64px;height:64px;border:1px solid #e2c98788;border-radius:50%;background:#e2c98710;box-shadow:0 0 0 7px #e2c9870b,0 0 28px #e2c98725;animation:lanternFloat 3.6s ease-in-out infinite}
+@keyframes lanternFloat{0%,100%{transform:translateY(0);box-shadow:0 0 0 7px #e2c9870b,0 0 22px #e2c98722}50%{transform:translateY(-5px);box-shadow:0 0 0 11px #e2c98710,0 0 38px #e2c98755}}
+.theme-card,.story-card,.paper-note,.message-reveal{animation:softArrive .65s both}
+.theme-card:nth-of-type(2){animation-delay:.06s}.theme-card:nth-of-type(3){animation-delay:.12s}.theme-card:nth-of-type(4){animation-delay:.18s}
+@keyframes softArrive{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.theme-icon{position:relative;transition:transform .35s,box-shadow .35s}
+.theme-card:hover .theme-icon{transform:rotate(-8deg) scale(1.08);box-shadow:0 0 0 5px #c9a45b18}
+.stop-link{transition:padding .22s,background .22s}
+.stop-link:hover,.stop-link:focus-visible{padding-left:8px;background:#f7f1e5}
+.stop-arrow{transition:transform .22s}.stop-link:hover .stop-arrow{transform:translateX(5px)}
+.spirit-stage{display:flex;align-items:center;gap:15px;margin:0 0 17px;padding:14px 16px;background:linear-gradient(110deg,#102c22,#1b4934);border:1px solid #c9a45b88;color:#fffaf0;overflow:hidden;position:relative}
+.spirit-stage:after{content:"";position:absolute;width:130px;height:130px;border-radius:50%;right:-25px;top:-48px;background:radial-gradient(circle,#e2c9872b,transparent 70%);animation:spiritAura 4s ease-in-out infinite alternate}
+@keyframes spiritAura{from{transform:scale(.8);opacity:.5}to{transform:scale(1.25);opacity:1}}
+.spirit-figure{position:relative;flex:0 0 58px;width:58px;height:68px;display:grid;place-items:center;font-size:37px;color:var(--gold2);filter:drop-shadow(0 0 10px #e2c98755);animation:spiritDrift 4.2s ease-in-out infinite}
+.spirit-figure:after{content:"";position:absolute;bottom:3px;left:8px;right:8px;height:9px;border-radius:50%;background:#e2c98733;filter:blur(6px);animation:shadowPulse 4.2s ease-in-out infinite}
+@keyframes spiritDrift{0%,100%{transform:translateY(3px) rotate(-3deg)}50%{transform:translateY(-7px) rotate(3deg)}}
+@keyframes shadowPulse{0%,100%{transform:scale(.8);opacity:.5}50%{transform:scale(1.15);opacity:1}}
+.spirit-stage-copy{position:relative;z-index:1}.spirit-stage-copy b{display:block;font-family:Oswald,sans-serif;text-transform:uppercase;letter-spacing:.1em;color:var(--gold2);font-size:12px;margin-bottom:4px}.spirit-stage-copy span{font-size:13px;line-height:1.5;color:#f7f1e5}
+.story-card h2{animation:titleUnfurl .7s both}
+@keyframes titleUnfurl{from{opacity:0;transform:translateY(8px);letter-spacing:.02em}to{opacity:1;transform:translateY(0);letter-spacing:normal}}
+.symbol-panel{position:relative;overflow:hidden}
+.symbol-panel:after{content:"";position:absolute;top:-60%;bottom:-60%;left:-35%;width:20%;transform:rotate(22deg);background:linear-gradient(90deg,transparent,#ffffff22,transparent);animation:goldSweep 5s ease-in-out infinite}
+@keyframes goldSweep{0%,65%{left:-35%}100%{left:125%}}
+.btn{transition:transform .2s,box-shadow .2s}.btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px #8f2f2b35}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}.snowflake{display:none}}
+
 </style>
 </head>
 <body>
+<div class="atmosphere" id="atmosphere" aria-hidden="true"></div>
 <header class="masthead"><div class="brandline">Hexham Christmas · 2026</div><div class="brandname">A <span>Christmas Carol</span> in Hexham</div></header>
 <main id="app"><section class="hero"><div class="lantern">✦</div><div class="eyebrow">A Dickensian Christmas Window Trail</div><h1>The Lost Spirit <span>of Christmas</span></h1><div class="rule"></div><p>The three Christmas Spirits have lost the things that make Christmas magical. With help from the people of Hexham, can they find them before Christmas morning?</p></section><div class="paper-note"><strong>The paper trail leads the way.</strong> Find each participating window, complete its little challenge on your printed trail sheet, then scan its QR code to discover an extra moment from the story. You can start anywhere. No phone is needed to complete the paper trail.</div><div id="content"></div><footer class="footer"><b>HEXHAM CHRISTMAS · A CHRISTMAS CAROL</b><br>Made with Christmas spirit in Hexham.</footer></main>
 <script type="module" src="/trail.js"></script>
