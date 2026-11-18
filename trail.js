@@ -1,5 +1,35 @@
 import {stops,themes} from './trail-content.js';
 const root=document.getElementById('content');
+
+// Gentle snowfall is decorative only and respects the device motion preference.
+function createAtmosphere(){
+ const layer=document.getElementById('atmosphere');
+ if(!layer||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ for(let i=0;i<34;i++){
+  const flake=document.createElement('i');flake.className='snowflake';
+  const size=(Math.random()*3+2).toFixed(1)+'px';
+  flake.style.setProperty('--x',(Math.random()*100).toFixed(2)+'%');
+  flake.style.setProperty('--size',size);
+  flake.style.setProperty('--opacity',(Math.random()*.55+.18).toFixed(2));
+  flake.style.setProperty('--duration',(Math.random()*13+12).toFixed(1)+'s');
+  flake.style.setProperty('--delay',(-Math.random()*24).toFixed(1)+'s');
+  flake.style.setProperty('--drift',(Math.random()*100-50).toFixed(0)+'px');
+  layer.appendChild(flake);
+ }
+}
+createAtmosphere();
+
+const spiritForTheme={
+ 'Christmas Past':{icon:'🕯️',name:'The Ghost of Christmas Past',line:'A memory is stirring. Follow the little lights.'},
+ 'Christmas Present':{icon:'♥',name:'The Ghost of Christmas Present',line:'A little kindness can warm the coldest night.'},
+ 'Christmas Together':{icon:'🔔',name:'The Spirit of Christmas Together',line:'Listen closely. The town is beginning to sing.'},
+ "Hexham's Christmas Message":{icon:'👻',name:'Jacob Marley',line:'The message is taking shape. Keep every piece safe.'},
+ 'Christmas Yet to Come':{icon:'✦',name:'The Ghost of Christmas Yet to Come',line:'The future is waiting. Your choices still matter.'}
+};
+function spiritStage(theme){
+ const spirit=spiritForTheme[theme]||spiritForTheme['Christmas Past'];
+ return '<div class="spirit-stage"><div class="spirit-figure" aria-hidden="true">'+spirit.icon+'</div><div class="spirit-stage-copy"><b>'+safe(spirit.name)+'</b><span>'+safe(spirit.line)+'</span></div></div>';
+}
 const path=decodeURIComponent(location.pathname);
 const match=path.match(/\/trail\/(\d{1,2})\/?$/);
 const stop=match?stops.find(s=>s.id===Number(match[1])):null;
