@@ -72,13 +72,14 @@ function setupPuzzle(theme){
   let n=0;['♡','♡','♡','♡','♡'].forEach((v,i)=>{const b=document.createElement('button');b.className='puzzle-tile';b.textContent=v;b.setAttribute('aria-label','Find a heart');b.addEventListener('click',()=>{if(b.disabled)return;b.disabled=true;b.textContent='♥';b.classList.add('done');n++;update(n,3);say(['A little kindness.','The warmth is returning.','One more for the spirit.'][Math.min(n-1,2)]);if(n===3)finish('The golden heart is glowing again.')});board.appendChild(b)});
  }else if(theme==='Christmas Together'){
   const seq=[2,1,0],notes=[392,494,587];let n=0;
-  function tone(freq,when,duration=.32){
+  async function tone(freq,when,duration=.32){
    const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
    const ctx=setupPuzzle.audioContext||(setupPuzzle.audioContext=new AudioCtx());
-   if(ctx.state==='suspended')ctx.resume();
+   if(ctx.state==='suspended')await ctx.resume();
+   if(when<=0)when=ctx.currentTime+.01;
    const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=freq;
    gain.gain.setValueAtTime(.0001,when);gain.gain.exponentialRampToValueAtTime(.18,when+.025);gain.gain.exponentialRampToValueAtTime(.0001,when+duration);
-   osc.connect(gain);gain.connect(ctx.destination);if(when<=0)when=ctx.currentTime+.01;osc.start(when);osc.stop(when+duration+.03);
+   osc.connect(gain);gain.connect(ctx.destination);osc.start(when);osc.stop(when+duration+.03);
   }
   const play=document.getElementById('play-bell-pattern');
   if(play)play.addEventListener('click',()=>{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx){say('Sound is not available in this browser.');return;}const ctx=setupPuzzle.audioContext||(setupPuzzle.audioContext=new AudioCtx());if(ctx.state==='suspended')ctx.resume();say('Listen carefully, then repeat the three notes.');seq.forEach((idx,k)=>tone(notes[idx],ctx.currentTime+.2+k*.62));});
