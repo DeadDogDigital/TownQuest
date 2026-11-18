@@ -55,7 +55,7 @@ function puzzleMarkup(theme){
  'Christmas Yet to Come':['Choose the way forward','Find the route through the snow. One step at a time.','✦',[]]
  };
  const c=configs[theme]||configs['Christmas Past'];
- return '<section class="puzzle-card" id="puzzle" data-theme="'+safe(theme)+'"><div class="puzzle-top"><div class="puzzle-badge">'+c[2]+'</div><div><div class="stop-kicker">A little extra mystery</div><h3>'+c[0]+'</h3></div></div><p>'+c[1]+'</p><div class="puzzle-board" id="puzzle-board"></div><div class="puzzle-progress"><span id="puzzle-progress"></span></div><div class="puzzle-feedback" id="puzzle-feedback" aria-live="polite"></div><div id="puzzle-result"></div></section>';
+ return '<section class="puzzle-card" id="puzzle" data-theme="'+safe(theme)+'"><div class="puzzle-top"><div class="puzzle-badge">'+c[2]+'</div><div><div class="stop-kicker">A little extra mystery</div><h3>'+c[0]+'</h3></div></div><p>'+c[1]+'</p><div class="puzzle-board" id="puzzle-board"></div>'+(theme==='Christmas Together'?'<button type="button" class="btn secondary" id="play-bell-pattern">▶ Hear the bell pattern</button>':'')+'<div class="puzzle-progress"><span id="puzzle-progress"></span></div><div class="puzzle-feedback" id="puzzle-feedback" aria-live="polite"></div><div id="puzzle-result"></div></section>';
 }
 function setupPuzzle(theme){
  const board=document.getElementById('puzzle-board');if(!board)return;
@@ -71,7 +71,18 @@ function setupPuzzle(theme){
  }else if(theme==='Christmas Present'){
   let n=0;['♡','♡','♡','♡','♡'].forEach((v,i)=>{const b=document.createElement('button');b.className='puzzle-tile';b.textContent=v;b.setAttribute('aria-label','Find a heart');b.addEventListener('click',()=>{if(b.disabled)return;b.disabled=true;b.textContent='♥';b.classList.add('done');n++;update(n,3);say(['A little kindness.','The warmth is returning.','One more for the spirit.'][Math.min(n-1,2)]);if(n===3)finish('The golden heart is glowing again.')});board.appendChild(b)});
  }else if(theme==='Christmas Together'){
-  const seq=[2,1,0];let n=0;['♩','♫','♬'].forEach((v,i)=>{const b=document.createElement('button');b.className='puzzle-tile';b.textContent='🔔';b.setAttribute('aria-label','Ring bell '+(i+1));b.addEventListener('click',()=>{if(i===seq[n]){b.classList.add('done');n++;update(n,3);say('That’s the note. Keep going…');if(n===3)finish('The bells are ringing together.')}else{n=0;update(0,3);board.querySelectorAll('.puzzle-tile').forEach(x=>x.classList.remove('done'));say('Not quite. Listen and try again.')}});board.appendChild(b)});
+  const seq=[2,1,0],notes=[392,494,587];let n=0;
+  function tone(freq,when,duration=.32){
+   const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
+   const ctx=setupPuzzle.audioContext||(setupPuzzle.audioContext=new AudioCtx());
+   if(ctx.state==='suspended')ctx.resume();
+   const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=freq;
+   gain.gain.setValueAtTime(.0001,when);gain.gain.exponentialRampToValueAtTime(.18,when+.025);gain.gain.exponentialRampToValueAtTime(.0001,when+duration);
+   osc.connect(gain);gain.connect(ctx.destination);if(when<=0)when=ctx.currentTime+.01;osc.start(when);osc.stop(when+duration+.03);
+  }
+  const play=document.getElementById('play-bell-pattern');
+  if(play)play.addEventListener('click',()=>{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx){say('Sound is not available in this browser.');return;}const ctx=setupPuzzle.audioContext||(setupPuzzle.audioContext=new AudioCtx());if(ctx.state==='suspended')ctx.resume();say('Listen carefully, then repeat the three notes.');seq.forEach((idx,k)=>tone(notes[idx],ctx.currentTime+.2+k*.62));});
+  ['Low','Middle','High'].forEach((label,i)=>{const b=document.createElement('button');b.className='puzzle-tile';b.textContent='🔔';b.setAttribute('aria-label','Ring '+label.toLowerCase()+' bell');b.title=label+' bell';b.addEventListener('click',()=>{tone(notes[i],0);if(i===seq[n]){b.classList.add('done');n++;update(n,3);say('That’s the note. Keep going…');if(n===3)finish('The bells are ringing together.')}else{n=0;update(0,3);board.querySelectorAll('.puzzle-tile').forEach(x=>x.classList.remove('done'));say('Not quite. Listen and try again.')}});board.appendChild(b)});
  }else if(theme==="Hexham's Christmas Message"){
   const seq=[1,2,3];let n=0;['I','II','III'].forEach((v,i)=>{const b=document.createElement('button');b.className='puzzle-tile';b.textContent='⛓';b.setAttribute('aria-label','Chain link '+v);b.addEventListener('click',()=>{if(i===seq[n]-1){b.classList.add('done');b.textContent='✦';n++;update(n,3);say('A link falls away…');if(n===3)finish('Marley’s chains have fallen. The message remains yours to discover on paper.')}else{n=0;update(0,3);board.querySelectorAll('.puzzle-tile').forEach(x=>{x.classList.remove('done');x.textContent='⛓'});say('The links are tangled. Start again.')}});board.appendChild(b)});
  }else{
