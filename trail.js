@@ -7,10 +7,10 @@ const pad=n=>String(n).padStart(2,'0');
 function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function renderHome(){
  document.title='The Lost Spirit of Christmas | Hexham Christmas Trail';
- root.innerHTML='<h2 class="section-title">The five parts of the story</h2>'+themes.map(t=>{
+ root.innerHTML='<section class="story-card"><div class="stop-kicker">A warning from Jacob Marley</div><h2>Christmas is slipping away</h2><p>“The three Spirits have lost the things that make Christmas magical. If they cannot recover them, Scrooge may never learn what Christmas truly means. The people of Hexham must help.”</p></section><h2 class="section-title">The five parts of the story</h2>'+themes.map(t=>{
  const group=stops.filter(s=>s.theme===t.name);
  return '<section class="theme-card"><div class="theme-head"><div class="theme-icon">'+t.icon+'</div><div><h3>'+safe(t.name)+'</h3><p>'+safe(t.subtitle)+'</p></div></div><div class="stop-list">'+group.map(s=>'<a class="stop-link" href="/trail/'+pad(s.id)+'"><span class="stop-no">'+pad(s.id)+'</span><span class="stop-name">'+safe(s.shop)+'</span><span class="stop-arrow">›</span></a>').join('')+'</div></section>';
- }).join('')+'<section class="message-reveal"><div class="eyebrow">A message from Hexham</div><p class="quote">“Love and giving is the spirit of Christmas.”</p><p style="font-size:13px;line-height:1.6;margin:0">Find the five parts of the message on your paper trail and put them together.</p></section>';
+ }).join('')+'<section class="paper-note"><strong>One last mystery</strong><br>Five windows hold five pieces of a message from Hexham. Keep collecting the words on your paper trail. Only when they are brought together will the message be complete.</section>';
 }
 function renderStop(s){
  document.title=s.shop+' · Stop '+pad(s.id)+' | The Lost Spirit of Christmas';
