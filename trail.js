@@ -30,15 +30,15 @@ const spiritForTheme={
  'Christmas Yet to Come':{icon:'✦',name:'The Ghost of Christmas Yet to Come',line:'The future is yours to shape.'}
 };
 function illustration(theme){
- const art={
- 'Christmas Past':['#e2c987','#a95b3d','<path d="M92 126h176v12H92z" fill="#8b6947"/><path d="M122 126V70l58-37 58 37v56z" fill="#294536"/><path d="M143 126V82h74v44" fill="#e9d9b6"/><path d="M171 126V91h18v35" fill="#8f2f2b"/><circle cx="180" cy="65" r="17" fill="#e2c987" opacity=".35" class="glow"/><path d="M180 48c-8 13-8 22 0 27 8-5 8-14 0-27" fill="#f4d77e"/>'],
- 'Christmas Present':['#e7c46c','#8f2f2b','<path d="M92 125h176v13H92z" fill="#8b6947"/><rect x="125" y="77" width="110" height="48" rx="4" fill="#8f2f2b"/><path d="M180 77v48M125 93h110" stroke="#e2c987" stroke-width="7"/><path d="M180 77c-38-5-35-39-12-35 12 2 12 20 12 35 0-15 0-33 12-35 23-4 26 30-12 35" fill="#e2c987"/><path d="M180 49c-26-20-46 6 0 29 46-23 26-49 0-29" fill="#e2c987" class="float"/>'],
- 'Christmas Together':['#e2c987','#8f2f2b','<path d="M92 126h176v12H92z" fill="#8b6947"/><path d="M116 126V75h128v51" fill="#294536"/><path d="M137 75q43-55 86 0" fill="none" stroke="#e2c987" stroke-width="5"/><g fill="#e2c987"><circle cx="137" cy="75" r="8"/><circle cx="180" cy="47" r="8"/><circle cx="223" cy="75" r="8"/></g><path d="M180 74v47m-15-32h30l-4 24h-22z" fill="#d6b45f" stroke="#8f2f2b" stroke-width="3"/>'],
- "Hexham's Christmas Message":['#c9a45b','#8f2f2b','<path d="M92 126h176v12H92z" fill="#8b6947"/><g fill="none" stroke="#c9a45b" stroke-width="9"><path d="M137 77c-22-25 12-48 31-22 19 26-15 49-31 22z"/><path d="M180 77c-22-25 12-48 31-22 19 26-15 49-31 22z"/><path d="M158 104c-22-25 12-48 31-22 19 26-15 49-31 22z"/></g><path d="M112 36l8 8m-8 0 8-8M238 40l7 7m-7 0 7-7" stroke="#f7e7b7" stroke-width="2"/>'],
- 'Christmas Yet to Come':['#d7e1e2','#7d8e91','<path d="M92 126h176v12H92z" fill="#8b6947"/><path d="M180 24l13 35 37 2-29 23 10 36-31-21-31 21 10-36-29-23 37-2z" fill="#e2c987" class="float"/><circle cx="180" cy="75" r="58" fill="#e2c987" opacity=".13" class="glow"/><path d="M120 126q60-50 120 0" fill="none" stroke="#f7f1e5" stroke-width="7" stroke-linecap="round"/>']
+ const images={
+  'Christmas Past':{src:'https://commons.wikimedia.org/wiki/Special:FilePath/Ghost_of_Christmas_Past.jpg',alt:'The Ghost of Christmas Past, original John Leech illustration'},
+  'Christmas Present':{src:'https://commons.wikimedia.org/wiki/Special:FilePath/Ghost_of_Christmas_Present_John_Leech_1843.jpg',alt:'The Ghost of Christmas Present, original John Leech illustration'},
+  'Christmas Together':{src:'https://commons.wikimedia.org/wiki/Special:FilePath/Mr_Fezziwig%27s_Ball_-_A_Christmas_Carol_(1843),_frontispiece_-_BL.jpg',alt:'Mr Fezziwig’s Christmas ball, illustrated by John Leech'},
+  "Hexham's Christmas Message":{src:'https://commons.wikimedia.org/wiki/Special:FilePath/Marley%27s_Ghost_-_A_Christmas_Carol_(1843),_opposite_25_-_BL.jpg',alt:'Marley’s Ghost, original John Leech illustration'},
+  'Christmas Yet to Come':{src:'https://commons.wikimedia.org/wiki/Special:FilePath/Ghost_of_Christmas_Yet_to_Come.jpg',alt:'The Ghost of Christmas Yet to Come, original John Leech illustration'}
  };
- const a=art[theme]||art['Christmas Past'];
- return '<div class="story-illustration" aria-hidden="true"><svg viewBox="0 0 360 160" role="img"><circle cx="180" cy="72" r="66" fill="'+a[0]+'" opacity=".1" class="glow"/><path d="M40 138h280" stroke="#c9a45b" stroke-width="2"/>'+a[2]+'<g fill="#e2c987"><path d="M60 28l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/><path d="M294 42l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></g></svg></div>';
+ const a=images[theme]||images['Christmas Past'];
+ return '<figure class="story-illustration"><img src="'+a.src+'" alt="'+safe(a.alt)+'" loading="lazy"><figcaption>From the original 1843 illustrated edition of <i>A Christmas Carol</i></figcaption></figure>';
 }
 function spiritStage(theme){
  const spirit=spiritForTheme[theme]||spiritForTheme['Christmas Past'];
@@ -102,7 +102,7 @@ function renderHome(){
  const done=completedPuzzles();
  root.innerHTML='<section class="story-card"><div class="stop-kicker">A message from Jacob Marley</div><h2>Something is missing…</h2><div class="home-illustration">'+illustration("Hexham's Christmas Message")+'</div><p>Three spirits. Five mysteries. Twenty-four windows. Help bring Christmas back to Hexham.</p></section><h2 class="section-title">Choose a chapter</h2>'+themes.map(t=>{
  const group=stops.filter(s=>s.theme===t.name),complete=group.every(s=>done.includes(s.id));
- return '<section class="theme-card"><div class="theme-head"><div class="theme-icon">'+t.icon+'</div><div><h3>'+safe(t.name)+'</h3><p>'+group.length+' windows · '+(complete?'All puzzles solved':done.filter(id=>group.some(s=>s.id===id)).length+' of '+group.length+' puzzles solved')+'</p></div></div><div class="stop-list">'+group.map(s=>'<a class="stop-link" href="/trail/'+pad(s.id)+'"><span class="stop-no">'+pad(s.id)+'</span><span class="stop-name">'+safe(s.shop)+'</span><span class="stop-arrow">›</span></a>').join('')+'</div></section>';
+ return '<section class="theme-card"><div class="theme-head"><div class="theme-icon">'+t.icon+'</div><div><h3>'+safe(t.name)+'</h3><p>'+group.length+' windows · '+(complete?'All puzzles solved':done.filter(id=>group.some(s=>s.id===id)).length+' of '+group.length+' puzzles solved')+'</p></div></div>'+illustration(t.name)+'<div class="stop-list">'+group.map(s=>'<a class="stop-link" href="/trail/'+pad(s.id)+'"><span class="stop-no">'+pad(s.id)+'</span><span class="stop-name">'+safe(s.shop)+'</span><span class="stop-arrow">›</span></a>').join('')+'</div></section>';
  }).join('')+'<div class="paper-note"><strong>Keep your paper trail close.</strong> The five-part message is only revealed by the printed trail.</div>';
 }
 function renderStop(s){
