@@ -1,7 +1,7 @@
 // Map pin coordinates for the 24 Hexham Christmas trail stops.
 // Coordinates are address/building-level reference points for organiser review; some shopfront positions may need minor adjustment.
 export const mapLocations = {
-  1:{address:"13 St Mary's Chare, Hexham",lat:54.97048,lng:-2.10157},
+  1:{address:"13 St Mary's Chare, Hexham",lat:54.97079,lng:-2.10149},
   2:{address:"17 St Mary's Chare, Hexham",lat:54.97058,lng:-2.10158},
   3:{address:"6 Battle Hill, Hexham",lat:54.96985,lng:-2.10157},
   4:{address:"3 St Mary's Chare, Hexham",lat:54.97099,lng:-2.1018},
@@ -9,12 +9,12 @@ export const mapLocations = {
   6:{address:"6A Beaumont Street, Hexham",lat:54.97103,lng:-2.10228},
   7:{address:"28 Fore Street, Hexham",lat:54.97098,lng:-2.10086},
   8:{address:"17C Hallstile Bank, Hexham",lat:54.97122,lng:-2.10212},
-  9:{address:"17 Hallstile Bank, Hexham",lat:54.97118,lng:-2.1021},
+  9:{address:"17 Hallstile Bank, Hexham",lat:54.97184,lng:-2.10031},
   10:{address:"5–6 Beaumont Street, Hexham",lat:54.9711,lng:-2.10232},
   11:{address:"15 Hallstile Bank, Hexham",lat:54.97112,lng:-2.10215},
   12:{address:"25 Market Place, Hexham",lat:54.9719,lng:-2.1016},
   13:{address:"22 Market Place, Hexham",lat:54.97183,lng:-2.10184},
-  14:{address:"21 Market Place, Hexham",lat:54.97178,lng:-2.10178},
+  14:{address:"21 Market Place, Hexham",lat:54.9718,lng:-2.1019},
   15:{address:"19 Market Street, Hexham (former Studio 19 premises)",lat:54.97227,lng:-2.10251},
   16:{address:"11 Market Street, Hexham",lat:54.9724,lng:-2.10228},
   17:{address:"10 Market Street, Hexham",lat:54.97232,lng:-2.10245},
@@ -24,5 +24,5 @@ export const mapLocations = {
   21:{address:"Mo's window, 24 Market Street, Hexham",lat:54.97229,lng:-2.10265},
   22:{address:"9 Market Street, Hexham",lat:54.97236,lng:-2.1022},
   23:{address:"34 Fore Street, Hexham",lat:54.97115,lng:-2.10085},
-  24:{address:"27–28 Market Place, Hexham",lat:54.9719,lng:-2.10132}
+  24:{address:"27–28 Market Place, Hexham",lat:54.9718,lng:-2.1018}
 };
