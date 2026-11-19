@@ -1,7 +1,7 @@
 import {stops,themes} from './trail-content.js';
 const root=document.getElementById('content');
 const path=decodeURIComponent(location.pathname);
-const match=path.match(/\/trail\/(\d{1,2})\/?$/);
+const match=path.match(/\/trail\/(\d{1,2})\/?$/);\nconst isDiscover=/^\/discover\/?$/.test(path);
 const stop=match?stops.find(s=>s.id===Number(match[1])):null;
 const pad=n=>String(n).padStart(2,'0');
 function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -97,19 +97,19 @@ function setupPuzzle(s){
   pattern.choices.forEach(v=>{const b=tile(v,'Choose '+v);b.addEventListener('click',()=>{if(v===pattern.answer){b.classList.add('done');finish('The pattern is complete. Well spotted!')}else{say('Look at the repeating pattern: '+pattern.hint+'. What should follow?')}})});
  }
 }
-function renderHome(){
+function discoverLink(){return '<section class="discover-invite"><div class="discover-mark">✦</div><div><div class="stop-kicker">Beyond the trail</div><h3>There is more to discover in Hexham</h3><p>Find more independent shops, places to eat and local experiences this Christmas.</p><a class="btn" href="/discover">Discover more of Hexham</a></div></section>';}\nfunction renderDiscovery(){\n document.title='Discover more of Hexham | Christmas in Hexham';\n root.innerHTML='<a class="backlink" href="/">← Back to the Christmas trail</a><section class="hero"><div class="lantern">✦</div><div class="eyebrow">Christmas in Hexham</div><h1>Discover more of <span>Hexham</span></h1><div class="rule"></div><p>The Christmas trail is just the beginning. There are plenty more independent businesses, welcoming places and local experiences to discover around our town.</p></section><section class="story-card discovery-welcome"><div class="stop-kicker">Shop local · Eat local · Explore local</div><h2>A little more Christmas spirit</h2><p>Look out for the Christmas in Hexham window sign. The businesses displaying it are part of this wider town-wide celebration, even if they are not one of the numbered Christmas trail stops.</p><p class="discovery-update">We are adding participating local businesses here. Please check back soon and see what else Hexham has to offer.</p><a class="btn secondary" href="/">Explore the 24-window trail</a></section><div class="paper-note"><strong>Every visit makes a difference.</strong> Choosing to pop into a local independent business helps keep Hexham’s high street distinctive, welcoming and full of life.</div>';\n}\nfunction renderHome(){
  document.title='The Lost Spirit of Christmas | Hexham Christmas Trail';
  const done=completedPuzzles();
  root.innerHTML='<section class="story-card"><div class="stop-kicker">A message from Jacob Marley</div><h2>Something is missing…</h2><div class="home-illustration">'+illustration("Hexham's Christmas Message")+'</div><p>Three spirits. Five mysteries. Twenty-four windows. Help bring Christmas back to Hexham.</p></section><h2 class="section-title">Choose a chapter</h2>'+themes.map(t=>{
  const group=stops.filter(s=>s.theme===t.name),complete=group.every(s=>done.includes(s.id));
  return '<section class="theme-card"><div class="theme-head"><div class="theme-icon">'+t.icon+'</div><div><h3>'+safe(t.name)+'</h3><p>'+group.length+' windows · '+(complete?'All puzzles solved':done.filter(id=>group.some(s=>s.id===id)).length+' of '+group.length+' puzzles solved')+'</p></div></div>'+illustration(t.name)+'<div class="stop-list">'+group.map(s=>'<a class="stop-link" href="/trail/'+pad(s.id)+'"><span class="stop-no">'+pad(s.id)+'</span><span class="stop-name">'+safe(s.shop)+'</span><span class="stop-arrow">›</span></a>').join('')+'</div></section>';
- }).join('')+'<div class="paper-note"><strong>Keep your paper trail close.</strong> The five-part message is only revealed by the printed trail.</div>';
+ }).join('')+'<div class="paper-note"><strong>Keep your paper trail close.</strong> The five-part message is only revealed by the printed trail.</div>'+discoverLink();
 }
 function renderStop(s){
  document.title=s.shop+' · Stop '+pad(s.id)+' | The Lost Spirit of Christmas';
  const index=stops.findIndex(x=>x.id===s.id),prev=stops[index-1],next=stops[index+1];
  const first=s.story.split(/[.!?]/)[0]+'.';
- root.innerHTML='<a class="backlink" href="/">← All chapters</a><section class="hero"><div class="lantern">'+s.icon+'</div><div class="eyebrow">Window '+pad(s.id)+' · Hexham</div><h1>'+safe(s.shop)+'</h1><div class="rule"></div><p class="hero-copy">'+safe(s.theme)+'</p>'+illustration(s.theme)+'</section>'+spiritStage(s.theme)+'<section class="story-card"><div class="stop-kicker">'+safe(s.storyTitle)+'</div><h2>'+safe(first)+'</h2><p class="story-long">'+safe(s.story)+'</p><div class="stop-display">Look for: '+safe(s.display)+'</div><div class="challenge"><b>Paper trail challenge</b>'+safe(s.challenge)+'</div><div class="symbol-panel"><span class="symbol">'+s.icon+'</span><span><b>Clue collected</b><span>'+safe(s.symbol)+'</span></span></div></section>'+puzzleMarkup(s)+'<div class="navrow">'+(prev?'<a class="btn secondary" href="/trail/'+pad(prev.id)+'">Previous</a>':'<a class="btn secondary" href="/">All windows</a>')+(next?'<a class="btn" href="/trail/'+pad(next.id)+'">Next window →</a>':'<a class="btn" href="/">Finish</a>')+'</div>';
+ root.innerHTML='<a class="backlink" href="/">← All chapters</a><section class="hero"><div class="lantern">'+s.icon+'</div><div class="eyebrow">Window '+pad(s.id)+' · Hexham</div><h1>'+safe(s.shop)+'</h1><div class="rule"></div><p class="hero-copy">'+safe(s.theme)+'</p>'+illustration(s.theme)+'</section>'+spiritStage(s.theme)+'<section class="story-card"><div class="stop-kicker">'+safe(s.storyTitle)+'</div><h2>'+safe(first)+'</h2><p class="story-long">'+safe(s.story)+'</p><div class="stop-display">Look for: '+safe(s.display)+'</div><div class="challenge"><b>Paper trail challenge</b>'+safe(s.challenge)+'</div><div class="symbol-panel"><span class="symbol">'+s.icon+'</span><span><b>Clue collected</b><span>'+safe(s.symbol)+'</span></span></div></section>'+puzzleMarkup(s)+'<div class="navrow">'+(prev?'<a class="btn secondary" href="/trail/'+pad(prev.id)+'">Previous</a>':'<a class="btn secondary" href="/">All windows</a>')+(next?'<a class="btn" href="/trail/'+pad(next.id)+'">Next window →</a>':'<a class="btn" href="/">Finish</a>')+'</div>'+discoverLink();
  setupPuzzle(s);
 }
-if(stop)renderStop(stop);else renderHome();
+if(isDiscover)renderDiscovery();else if(stop)renderStop(stop);else renderHome();
