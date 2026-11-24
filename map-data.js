@@ -19,7 +19,7 @@ export const mapLocations = {
   16:{address:"19 Market Street, Hexham (former Studio 19 premises)",lat:54.97227,lng:-2.10251},
   17:{address:"11 Market Street, Hexham",lat:54.9724,lng:-2.10228},
   18:{address:"10 Market Street, Hexham",lat:54.97232,lng:-2.10245},
-  19:{address:"3 Market Street, Hexham",lat:54.97219,lng:-2.10187},
+  19:{address:"3 Market Street, Hexham",lat:54.9721406,lng:-2.1018984},
   20:{address:"6–8 Market Street, Hexham",lat:54.97229,lng:-2.10194},
   21:{address:"5 St Mary's Chare, Hexham",lat:54.9709,lng:-2.10152},
   22:{address:"Mo's window, 24 Market Street, Hexham",lat:54.97229,lng:-2.10265},
