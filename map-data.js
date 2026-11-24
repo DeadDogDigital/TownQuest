@@ -13,7 +13,7 @@ export const mapLocations = {
   10:{address:"17 Hallstile Bank, Hexham",lat:54.97184,lng:-2.10031},
   11:{address:"5–6 Beaumont Street, Hexham",lat:54.97101,lng:-2.10217},
   12:{address:"15 Hallstile Bank, Hexham",lat:54.97184,lng:-2.100403},
-  13:{address:"25 Market Place, Hexham",lat:54.9719,lng:-2.1016},
+  13:{address:"25 Market Place, Hexham",lat:54.9719,lng:-2.1016775},
   14:{address:"22 Market Place, Hexham",lat:54.97183,lng:-2.10184},
   15:{address:"21 Market Place, Hexham",lat:54.9718,lng:-2.1019},
   16:{address:"19 Market Street, Hexham (former Studio 19 premises)",lat:54.97227,lng:-2.10251},
