@@ -2,7 +2,8 @@ import {stops,themes} from './trail-content.js';
 import {renderTrailMap} from './map.js';
 const root=document.getElementById('content');
 const path=decodeURIComponent(location.pathname);
-const match=path.match(/\/trail\/(\d{1,2})\/?$/);
+const qrMatch=path.match(/\/trail\/(\d{1,2})\/?$/);
+const windowMatch=path.match(/\/window\/(\d{1,2})\/?$/);
 const isDiscover=/^\/discover\/?$/.test(path);
 const stop=windowMatch?stops.find(s=>s.id===Number(windowMatch[1])):qrMatch?stops.find(s=>s.qrId===Number(qrMatch[1])):null;
 const pad=n=>String(n).padStart(2,'0');
@@ -66,7 +67,8 @@ function puzzleMarkup(s){
 function setupPuzzle(s){
  const board=document.getElementById('puzzle-board');if(!board)return;
  const feedback=document.getElementById('puzzle-feedback'),progress=document.getElementById('puzzle-progress'),result=document.getElementById('puzzle-result');
- const puzzleId=s.qrId||s.id;\n const p=puzzleForStop(s),done=completedPuzzles().includes(puzzleId);
+ const puzzleId=s.qrId||s.id;
+ const p=puzzleForStop(s),done=completedPuzzles().includes(puzzleId);
  const say=t=>feedback.textContent=t,update=(n,total)=>progress.style.width=(n/total*100)+'%';
  function finish(message){savePuzzle(puzzleId);board.innerHTML='';progress.style.width='100%';result.innerHTML='<div class="puzzle-complete">✦ '+message+'<br><strong>You found a little piece of Christmas magic.</strong></div>';feedback.textContent=''}
  if(done){finish('You have already solved this little mystery.');return}
