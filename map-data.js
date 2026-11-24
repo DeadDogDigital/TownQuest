@@ -5,7 +5,7 @@ export const mapLocations = {
   2:{address:"17 St Mary's Chare, Hexham",lat:54.97067,lng:-2.10143},
   3:{address:"6 Battle Hill, Hexham",lat:54.96985,lng:-2.10157},
   4:{address:"3 St Mary's Chare, Hexham",lat:54.97099,lng:-2.10157},
-  5:{address:"39 Fore Street, Hexham NE46 1LN",lat:54.97128,lng:-2.10068}
+  5:{address:"39 Fore Street, Hexham NE46 1LN",lat:54.97128,lng:-2.10068},
   6:{address:"2 Market Street, Hexham",lat:54.9721,lng:-2.1019},
   7:{address:"6A Beaumont Street, Hexham",lat:54.97103,lng:-2.10228},
   8:{address:"28 Fore Street, Hexham",lat:54.97098,lng:-2.10086},
