@@ -1,4 +1,5 @@
 import {stops,themes} from './trail-content.js';
+import {mapLocations} from './map-data.js';
 import {renderTrailMap} from './map.js';
 const root=document.getElementById('content');
 const path=decodeURIComponent(location.pathname);
@@ -104,7 +105,12 @@ function setupPuzzle(s){
 function discoverLink(){return '<section class="discover-invite"><div class="discover-mark">✦</div><div><div class="stop-kicker">Beyond the trail</div><h3>There is more to discover in Hexham</h3><p>Find more independent shops, places to eat and local experiences this Christmas.</p><a class="btn" href="/discover">Discover more of Hexham</a></div></section>';}
 function renderDiscovery(){
  document.title='Discover more of Hexham | Christmas in Hexham';
- root.innerHTML='<a class="backlink" href="/">← Back to the Christmas trail</a><section class="hero"><div class="lantern">✦</div><div class="eyebrow">Christmas in Hexham</div><h1>Discover more of <span>Hexham</span></h1><div class="rule"></div><p>The Christmas trail is just the beginning. There are plenty more independent businesses, welcoming places and local experiences to discover around our town.</p></section><section class="story-card discovery-welcome"><div class="stop-kicker">Shop local · Eat local · Explore local</div><h2>A little more Christmas spirit</h2><p>Look out for the Christmas in Hexham window sign. The businesses displaying it are part of this wider town-wide celebration, even if they are not one of the numbered Christmas trail stops.</p><p class="discovery-update">We are adding participating local businesses here. Please check back soon and see what else Hexham has to offer.</p><a class="btn secondary" href="/">Explore the 25-window trail</a></section><div class="paper-note"><strong>Every visit makes a difference.</strong> Choosing to pop into a local independent business helps keep Hexham’s high street distinctive, welcoming and full of life.</div>';
+ const directory=stops.map(s=>{
+  const location=mapLocations[s.id];
+  const address=location?.address||'Hexham';
+  return '<a class="stop-link" href="/window/'+pad(s.id)+'" aria-label="Explore '+safe(s.shop)+', Christmas trail stop '+pad(s.id)+'"><span class="stop-no">'+pad(s.id)+'</span><span class="stop-name"><strong>'+safe(s.shop)+'</strong><small>'+safe(address)+'</small></span><span class="stop-arrow">›</span></a>';
+ }).join('');
+ root.innerHTML='<a class="backlink" href="/">← Back to the Christmas trail</a><section class="hero"><div class="lantern">✦</div><div class="eyebrow">Christmas in Hexham</div><h1>Discover more of <span>Hexham</span></h1><div class="rule"></div><p>Meet the independent businesses helping bring this year’s Christmas trail to life. Explore the windows, find their stories and enjoy discovering more of our town.</p></section><section class="story-card discovery-welcome"><div class="stop-kicker">Shop local · Eat local · Explore local</div><h2>Start with the trail businesses</h2><p>These are the 25 businesses taking part in this year’s Lost Spirit of Christmas window trail. Tap a name to see its window clue, story and little extra puzzle.</p><div class="theme-card discover-directory"><div class="stop-list">'+directory+'</div></div><p class="discovery-update">We’ll add more local places and experiences here as their details are confirmed.</p><a class="btn secondary" href="/">Return to the Christmas trail</a></section><div class="paper-note"><strong>Every visit makes a difference.</strong> Choosing to pop into a local independent business helps keep Hexham’s high street distinctive, welcoming and full of life.</div>';
 }
 function renderHome(){
  document.title='The Lost Spirit of Christmas | Hexham Christmas Trail';
@@ -120,4 +126,5 @@ function renderStop(s){
  root.innerHTML='<a class="backlink" href="/">← All chapters</a><section class="hero"><div class="lantern">'+s.icon+'</div><div class="eyebrow">Window '+pad(s.id)+' · Hexham</div><h1>'+safe(s.shop)+'</h1><div class="rule"></div><p class="hero-copy">'+safe(s.theme)+'</p>'+illustration(s.theme)+'</section>'+spiritStage(s.theme)+'<section class="story-card"><div class="stop-kicker">'+safe(s.storyTitle)+'</div><h2>'+safe(first)+'</h2><p class="story-long">'+safe(s.story)+'</p><div class="stop-display">Look for: '+safe(s.display)+'</div><div class="challenge"><b>Paper trail challenge</b>'+safe(s.challenge)+'</div><div class="symbol-panel"><span class="symbol">'+s.icon+'</span><span><b>Clue collected</b><span>'+safe(s.symbol)+'</span></span></div></section>'+puzzleMarkup(s)+'<div class="navrow">'+(prev?'<a class="btn secondary" href="/window/'+pad(prev.id)+'">Previous</a>':'<a class="btn secondary" href="/">All windows</a>')+(next?'<a class="btn" href="/window/'+pad(next.id)+'">Next window →</a>':'<a class="btn" href="/">Finish</a>')+'</div>'+discoverLink();
  setupPuzzle(s);
 }
+document.body.classList.toggle('is-stop-page',Boolean(stop));
 if(isDiscover)renderDiscovery();else if(stop)renderStop(stop);else renderHome();
