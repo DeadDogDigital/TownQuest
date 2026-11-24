@@ -25,5 +25,5 @@ export const mapLocations = {
   22:{address:"Mo's window, 24 Market Street, Hexham",lat:54.97229,lng:-2.10265},
   23:{address:"9 Market Street, Hexham",lat:54.97236,lng:-2.1022},
   24:{address:"34 Fore Street, Hexham",lat:54.9706979,lng:-2.1008345},
-  25:{address:"27–28 Market Place, Hexham",lat:54.9718,lng:-2.1018},
+  25:{address:"27–28 Market Place, Hexham",lat:54.9718329,lng:-2.1015420},
 };
