@@ -34,7 +34,7 @@ export function renderTrailMap(stops){
     const address = document.createElement('span');
     address.textContent = location.address;
     const link = document.createElement('a');
-    link.href='/trail/'+String(stop.id).padStart(2,'0');
+    link.href='/window/'+String(stop.id).padStart(2,'0');
     link.textContent='View this window';
     const directions = document.createElement('a');
     directions.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(location.address+', Northumberland, UK');
