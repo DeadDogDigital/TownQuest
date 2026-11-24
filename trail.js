@@ -66,7 +66,7 @@ function puzzleMarkup(s){
 function setupPuzzle(s){
  const board=document.getElementById('puzzle-board');if(!board)return;
  const feedback=document.getElementById('puzzle-feedback'),progress=document.getElementById('puzzle-progress'),result=document.getElementById('puzzle-result');
- const puzzleId=s.qrId||puzzleId;\n const p=puzzleForStop(s),done=completedPuzzles().includes(puzzleId);
+ const puzzleId=s.qrId||s.id;\n const p=puzzleForStop(s),done=completedPuzzles().includes(puzzleId);
  const say=t=>feedback.textContent=t,update=(n,total)=>progress.style.width=(n/total*100)+'%';
  function finish(message){savePuzzle(puzzleId);board.innerHTML='';progress.style.width='100%';result.innerHTML='<div class="puzzle-complete">✦ '+message+'<br><strong>You found a little piece of Christmas magic.</strong></div>';feedback.textContent=''}
  if(done){finish('You have already solved this little mystery.');return}
@@ -108,8 +108,8 @@ function renderHome(){
  document.title='The Lost Spirit of Christmas | Hexham Christmas Trail';
  const done=completedPuzzles();
  root.innerHTML='<section class="story-card"><div class="stop-kicker">A message from Jacob Marley</div><h2>Something is missing…</h2><div class="home-illustration">'+illustration("Hexham's Christmas Message")+'</div><p>Three spirits. Five mysteries. Twenty-five windows. Help bring Christmas back to Hexham.</p></section><section class="trail-map-card"><div class="map-heading"><div><div class="stop-kicker">Find your way around Hexham</div><h2>Explore the 25 windows</h2><p>Tap a numbered marker to see the shop and open its trail page.</p></div><span class="map-count">25 stops</span></div><div id="trail-map" role="application" aria-label="Map showing the 25 Hexham Christmas trail stops"></div><p class="map-note">Pin positions are approximate shopfront locations. Use Directions for navigation.</p></section><h2 class="section-title">Choose a chapter</h2>'+themes.map(t=>{
- const group=stops.filter(s=>s.theme===t.name),complete=group.every(s=>done.includes(s.id));
- return '<section class="theme-card"><div class="theme-head"><div class="theme-icon">'+t.icon+'</div><div><h3>'+safe(t.name)+'</h3><p>'+group.length+' windows · '+(complete?'All puzzles solved':done.filter(id=>group.some(s=>s.id===id)).length+' of '+group.length+' puzzles solved')+'</p></div></div>'+illustration(t.name)+'<div class="stop-list">'+group.map(s=>'<a class="stop-link" href="/window/'+pad(s.id)+'"><span class="stop-no">'+pad(s.id)+'</span><span class="stop-name">'+safe(s.shop)+'</span><span class="stop-arrow">›</span></a>').join('')+'</div></section>';
+ const group=stops.filter(s=>s.theme===t.name),complete=group.every(s=>done.includes(s.qrId||s.id));
+ return '<section class="theme-card"><div class="theme-head"><div class="theme-icon">'+t.icon+'</div><div><h3>'+safe(t.name)+'</h3><p>'+group.length+' windows · '+(complete?'All puzzles solved':done.filter(id=>group.some(s=>(s.qrId||s.id)===id)).length+' of '+group.length+' puzzles solved')+'</p></div></div>'+illustration(t.name)+'<div class="stop-list">'+group.map(s=>'<a class="stop-link" href="/window/'+pad(s.id)+'"><span class="stop-no">'+pad(s.id)+'</span><span class="stop-name">'+safe(s.shop)+'</span><span class="stop-arrow">›</span></a>').join('')+'</div></section>';
  }).join('')+'<div class="paper-note"><strong>Keep your paper trail close.</strong> The five-part message is only revealed by the printed trail.</div>'+discoverLink();
  renderTrailMap(stops);
 }
